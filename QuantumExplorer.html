@@ -65,7 +65,6 @@
 
         <div class="grid grid-cols-12 gap-4">
             <div class="col-span-12 lg:col-span-3 space-y-3">
-                <!-- Advanced Dynamic Insights Panel -->
                 <section class="insight-card bg-slate-800/90 p-4 rounded-r-lg border border-slate-700 shadow-2xl overflow-hidden">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-[11px] font-bold text-sky-400 uppercase tracking-widest flex items-center gap-2">
@@ -107,15 +106,12 @@
 
                 <div class="bg-slate-900 rounded-xl border border-slate-800 p-4 min-h-[450px] relative">
                     <div id="view-circuit" class="view-panel grid grid-cols-4 sm:grid-cols-8 gap-4"></div>
-
                     <div id="view-corkscrew" class="view-panel hidden relative">
                         <div id="three-corkscrew-container" class="w-full h-[400px]"></div>
                     </div>
-
                     <div id="view-qsphere" class="view-panel hidden relative">
                         <div id="three-qsphere-container" class="w-full h-[400px]"></div>
                     </div>
-
                     <div id="view-hinton" class="view-panel hidden">
                         <div class="flex flex-col xl:flex-row gap-8 items-start justify-center">
                             <div class="flex-shrink-0">
@@ -132,7 +128,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div id="view-matrix" class="view-panel hidden space-y-6">
                         <div class="flex flex-wrap gap-8">
                             <div class="flex-1 min-w-[200px]">
@@ -207,7 +202,6 @@
             document.getElementById(`view-${tabId}`).classList.remove('hidden');
             document.getElementById(`tab-${tabId}`).classList.add('active');
             activeTab = tabId;
-            
             setTimeout(() => {
                 if (tabId === 'corkscrew') initCorkscrew();
                 if (tabId === 'qsphere') initQSphere();
@@ -223,8 +217,13 @@
             let lastMatrix = null;
             let lastGateInfo = "None";
 
+            // Safety clamp: Ensure currentStep doesn't exceed array bounds
+            if (currentStep > circuit.length) currentStep = circuit.length;
+
             for (let s = 0; s < currentStep; s++) {
                 const gate = circuit[s];
+                if (!gate) continue; // Guard against undefined entries
+
                 const nextState = Array(STATES).fill(0).map(() => new Complex(0, 0));
                 const bitMask = 1 << (3 - gate.target);
                 
@@ -237,10 +236,9 @@
                     const amp = stateVector[i];
                     const bitIsSet = (i & bitMask) !== 0;
                     const ctrlSatisfied = gate.controls.every(c => (i & (1 << (3 - c))) !== 0);
-
+                    
                     if (gate.type === 'H') {
-                        const idx0 = i & ~bitMask;
-                        const idx1 = i | bitMask;
+                        const idx0 = i & ~bitMask; const idx1 = i | bitMask;
                         if (!bitIsSet) {
                             nextState[idx0] = nextState[idx0].add(amp.mul(new Complex(INV_SQRT2)));
                             nextState[idx1] = nextState[idx1].add(amp.mul(new Complex(INV_SQRT2)));
@@ -276,67 +274,6 @@
                 stateVector = nextState;
             }
             updateViews(lastMatrix, lastGateInfo);
-            updateInsights();
-        }
-
-        function updateInsights() {
-            const container = document.getElementById('insight-content');
-            const tag = document.getElementById('insight-gate-tag');
-            const lastGate = circuit[currentStep - 1];
-            
-            if (currentStep === 0) {
-                tag.innerText = "START";
-                container.innerHTML = `<p>The system is in the ground state <b>|0000⟩</b>. Every qubit is a definite '0'. Apply an <b>H (Hadamard)</b> gate to see superposition begin.</p>`;
-                return;
-            }
-
-            tag.innerText = lastGate.type + (lastGate.controls.length > 0 ? "*" : "");
-            
-            let message = "";
-            const probCount = stateVector.filter(v => v.magSq() > 0.01).length;
-
-            switch(activeTab) {
-                case 'circuit':
-                    if (lastGate.type === 'H') {
-                        message = `<p><b>Hadamard (H) Applied:</b> Notice how the phase disks are now splitting. Instead of one large blue circle, you have two smaller ones. Each represents a 50% probability of finding that state.</p>`;
-                    } else if (lastGate.type === 'X') {
-                        message = `<p><b>NOT (X) Applied:</b> Look at the binary labels. The gate flipped the ${lastGate.target}-th bit. The probability "mass" has shifted to the corresponding binary state.</p>`;
-                    } else {
-                        message = `<p><b>${lastGate.type} Applied:</b> This rotation adjusted the complex phase. Watch the <b>needle</b> inside the disk; it points in a different direction now, representing a phase shift.</p>`;
-                    }
-                    break;
-
-                case 'corkscrew':
-                    if (probCount > 1) {
-                        message = `<p><b>Wave Superposition:</b> Look at the <b>White Composite Wave</b> on the far left. It is the sum of all individual basis waves. Notice how it creates a unique interference pattern.</p>
-                                   <p class="mt-2">The <b>colored spirals</b> represent different outcomes. Because you applied ${lastGate.type}, these waves are now interacting. If they were 180° apart, they would cancel out (destructive interference).</p>`;
-                    } else {
-                        message = `<p><b>Pure State:</b> Since there is only one outcome, the white composite wave matches the basis wave exactly. There is no interference to observe yet.</p>`;
-                    }
-                    break;
-
-                case 'qsphere':
-                    message = `<p>The <b>Q-Sphere</b> is now showing <b>${probCount}</b> active nodes. Since you applied ${lastGate.type}, focus on the <b>colors</b>.</p>
-                               <p class="mt-2">Different colors mean different relative phases. If all nodes were the same color, they would be "in phase". Here, the gate has likely introduced a phase rotation.</p>`;
-                    break;
-
-                case 'hinton':
-                    const p1 = parseFloat(polytopeViews[0]?.purityText.innerText.match(/(\d+)%/)?.[1] || 100);
-                    if (p1 < 90) {
-                        message = `<p><b>Entanglement Detected!</b> Look at the <b>Polytopes (Bloch Spheres)</b>. Notice they are no longer on the surface of the sphere—they have <b>shrunk toward the center</b>.</p>
-                                   <p class="mt-2">This means the qubits no longer have a definite state of their own; they only exist as part of a correlated pair. The <b>Hinton Diagram</b> on the left shows off-diagonal colored squares—these represent the "coherence" or link between these states.</p>`;
-                    } else {
-                        message = `<p><b>Independent States:</b> The qubits are still "pure". In the Hinton Diagram, focus on the <b>Diagonal</b>. These large squares show where the probability lives. Since there are no off-diagonal connections, there is no entanglement yet.</p>`;
-                    }
-                    break;
-
-                case 'matrix':
-                    message = `<p>Focus on the <b>Matrix Grid</b>. Each column represents what happens to a specific basis state (like |0000⟩) when the ${lastGate.type} gate hits it.</p>
-                               <p class="mt-2">The <b>State Vector</b> on the left shows the resulting coefficients. Any complex numbers (with an 'i') mean the gate pushed the state into the complex plane.</p>`;
-                    break;
-            }
-
-            container.innerHTML = message;
         }
 
         function createTextSprite(text, color = '#94a3b8') {
@@ -354,51 +291,51 @@
 
         function initCorkscrew() {
             const container = document.getElementById('three-corkscrew-container');
-            if (corkscrew.renderer) {
-                corkscrew.renderer.setSize(container.clientWidth, container.clientHeight);
-                return;
-            }
+            if (corkscrew.renderer) { corkscrew.renderer.setSize(container.clientWidth, container.clientHeight); return; }
             corkscrew.scene = new THREE.Scene();
             corkscrew.camera = new THREE.PerspectiveCamera(50, container.clientWidth/container.clientHeight, 0.1, 1000);
             corkscrew.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             corkscrew.renderer.setSize(container.clientWidth, container.clientHeight);
             container.appendChild(corkscrew.renderer.domElement);
             corkscrew.controls = new THREE.OrbitControls(corkscrew.camera, corkscrew.renderer.domElement);
-            corkscrew.camera.position.set(0, 8, 14);
+            corkscrew.camera.position.set(12, 12, 18);
 
-            const gridHelper = new THREE.GridHelper(24, 24, 0x1e293b, 0x1e293b);
-            gridHelper.position.y = -0.1;
-            corkscrew.scene.add(gridHelper);
+            const grid = new THREE.GridHelper(40, 40, 0x334155, 0x1e293b);
+            grid.position.y = -3;
+            corkscrew.scene.add(grid);
 
             for(let i=0; i<STATES; i++) {
                 const geometry = new THREE.BufferGeometry();
-                const positions = new Float32Array(100 * 3);
-                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(100 * 3), 3));
                 const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.8 }));
                 corkscrew.scene.add(line);
                 corkscrew.lines.push(line);
 
-                const needleGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,1,0)]);
+                const needleGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(1,0,0)]);
                 const needle = new THREE.Line(needleGeom, new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 }));
                 corkscrew.scene.add(needle);
                 corkscrew.needles.push(needle);
 
                 const label = createTextSprite(`|${i.toString(2).padStart(4,'0')}⟩`);
-                label.position.set(i - 7.5, 0, -1);
+                label.position.set(i - 7.5, -2.5, 2);
                 corkscrew.scene.add(label);
                 corkscrew.labels.push(label);
             }
 
             const compositeGeom = new THREE.BufferGeometry();
             compositeGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(100*3), 3));
-            corkscrew.compositeLine = new THREE.Line(compositeGeom, new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 3 }));
+            corkscrew.compositeLine = new THREE.Line(compositeGeom, new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 4 }));
             corkscrew.scene.add(corkscrew.compositeLine);
         }
 
         function renderCorkscrew() {
             if (!corkscrew.renderer) return;
-            const compositePoints = new Array(100).fill(0).map(() => new Complex(0,0));
-            const BASE_RADIUS = 2.5;
+            const BASE_RADIUS = 1.8;
+            const POINTS = 100;
+            const PROPAGATION_STEP = 0.15;
+            const SPIRAL_WAVELENGTH = 1.2; 
+            
+            const compositePoints = Array.from({length: POINTS}, () => new Complex(0, 0));
 
             stateVector.forEach((amp, idx) => {
                 const prob = amp.magSq();
@@ -408,54 +345,53 @@
                 if (!line) return;
                 
                 if (prob < 0.001) { 
-                    line.visible = false; 
-                    needle.visible = false;
-                    label.material.opacity = 0.1; 
+                    line.visible = false; needle.visible = false; label.material.opacity = 0.1; 
                     return; 
                 }
 
-                line.visible = true;
-                needle.visible = true;
-                label.material.opacity = 1;
+                line.visible = true; needle.visible = true; label.material.opacity = 1;
+                line.material.color.setHSL(idx / STATES, 0.8, 0.5);
                 
                 const pos = line.geometry.attributes.position.array;
                 const phase0 = amp.phase();
                 const radius = Math.sqrt(prob) * BASE_RADIUS;
-                
-                line.material.color.setHSL(idx / STATES, 0.8, 0.5);
+                const xCenter = idx - 7.5;
 
-                for(let i=0; i<100; i++) {
-                    const t = i / 10;
-                    const angle = phase0 + (t * 1.5) - animationTime;
-                    const x = idx - 7.5;
-                    const y = Math.sin(angle) * radius;
-                    const z = t;
-                    pos[i*3] = x; pos[i*3+1] = y; pos[i*3+2] = z;
-                    compositePoints[i] = compositePoints[i].add(new Complex(Math.cos(angle)*radius, Math.sin(angle)*radius));
+                for(let i=0; i<POINTS; i++) {
+                    const z = i * PROPAGATION_STEP;
+                    const totalPhase = phase0 + (z * SPIRAL_WAVELENGTH) - animationTime;
+                    
+                    const localX = Math.cos(totalPhase) * radius;
+                    const localY = Math.sin(totalPhase) * radius;
+                    
+                    pos[i*3] = xCenter + localX;
+                    pos[i*3+1] = localY;
+                    pos[i*3+2] = -z;
+
+                    compositePoints[i] = compositePoints[i].add(new Complex(localX, localY));
                 }
                 line.geometry.attributes.position.needsUpdate = true;
-                needle.position.set(idx-7.5, 0, 0);
-                needle.scale.y = radius;
-                needle.rotation.x = -phase0 + animationTime;
+                
+                needle.position.set(xCenter, 0, 0);
+                needle.rotation.z = phase0 - animationTime;
+                needle.scale.setScalar(radius);
             });
 
             const cPos = corkscrew.compositeLine.geometry.attributes.position.array;
-            for(let i=0; i<100; i++) {
-                const t = i / 10;
-                cPos[i*3] = -9.5;
-                cPos[i*3+1] = compositePoints[i].re;
-                cPos[i*3+2] = t;
+            for(let i=0; i<POINTS; i++) {
+                const z = i * PROPAGATION_STEP;
+                cPos[i*3] = -14 + compositePoints[i].re; 
+                cPos[i*3+1] = compositePoints[i].im;
+                cPos[i*3+2] = -z;
             }
             corkscrew.compositeLine.geometry.attributes.position.needsUpdate = true;
+            
             corkscrew.renderer.render(corkscrew.scene, corkscrew.camera);
         }
 
         function initQSphere() {
             const container = document.getElementById('three-qsphere-container');
-            if (qsphere.renderer) {
-                qsphere.renderer.setSize(container.clientWidth, container.clientHeight);
-                return;
-            }
+            if (qsphere.renderer) { qsphere.renderer.setSize(container.clientWidth, container.clientHeight); return; }
             qsphere.scene = new THREE.Scene();
             qsphere.camera = new THREE.PerspectiveCamera(50, container.clientWidth/container.clientHeight, 0.1, 1000);
             qsphere.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -463,10 +399,6 @@
             container.appendChild(qsphere.renderer.domElement);
             qsphere.controls = new THREE.OrbitControls(qsphere.camera, qsphere.renderer.domElement);
             qsphere.camera.position.set(6, 6, 6);
-            
-            const grid = new THREE.Mesh(new THREE.SphereGeometry(4, 32, 32), new THREE.MeshBasicMaterial({ color: 0x334155, wireframe: true, transparent: true, opacity: 0.05 }));
-            qsphere.scene.add(grid);
-
             for(let i=0; i<STATES; i++) {
                 const node = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({ color: 0xffffff }));
                 const hamming = i.toString(2).split('1').length - 1;
@@ -487,18 +419,9 @@
             stateVector.forEach((amp, i) => {
                 const prob = amp.magSq();
                 const node = qsphere.nodes[i];
-                const label = qsphere.labels[i];
                 if (!node) return;
-                if (prob < 0.001) {
-                    node.scale.setScalar(0.2);
-                    node.material.color.setHex(0x1e293b);
-                    label.visible = false;
-                } else {
-                    const s = 0.2 + Math.sqrt(prob) * 2.5;
-                    node.scale.setScalar(s);
-                    node.material.color.setHSL(amp.phase()/(2*Math.PI) + 0.5, 0.8, 0.5);
-                    label.visible = true;
-                }
+                if (prob < 0.001) { node.scale.setScalar(0.2); node.material.color.setHex(0x1e293b); } 
+                else { node.scale.setScalar(0.2 + Math.sqrt(prob) * 2.5); node.material.color.setHSL(amp.phase()/(2*Math.PI) + 0.5, 0.8, 0.5); }
             });
             qsphere.renderer.render(qsphere.scene, qsphere.camera);
         }
@@ -507,40 +430,28 @@
             const container = document.getElementById('polytope-container');
             if (!container || polytopeViews.length > 0) return;
             container.innerHTML = '';
-            polytopeViews = [];
-
             for(let q=0; q<QUBITS; q++) {
                 const card = document.createElement('div');
                 card.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 flex flex-col items-center min-h-[140px]";
                 card.innerHTML = `<h4 class="text-[9px] font-bold text-slate-400 mb-1">Q${q}</h4><div id="poly-${q}" class="w-full h-24 block"></div><div class="purity-val text-[8px] text-sky-400 mt-1"></div>`;
                 container.appendChild(card);
-
-                const viewContainer = card.querySelector(`#poly-${q}`);
-                const w = viewContainer.clientWidth || 180, h = viewContainer.clientHeight || 100;
+                const vC = card.querySelector(`#poly-${q}`);
                 const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+                const camera = new THREE.PerspectiveCamera(40, vC.clientWidth / vC.clientHeight, 0.1, 100);
                 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-                renderer.setSize(w, h);
-                viewContainer.appendChild(renderer.domElement);
-                camera.position.set(2, 2, 4);
-                camera.lookAt(0,0,0);
-
-                const bloch = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 12), new THREE.MeshBasicMaterial({ color: 0x475569, wireframe: true, transparent: true, opacity: 0.1 }));
-                scene.add(bloch);
-
+                renderer.setSize(vC.clientWidth, vC.clientHeight);
+                vC.appendChild(renderer.domElement);
+                camera.position.set(2, 2, 4); camera.lookAt(0,0,0);
                 const statePoint = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
                 scene.add(statePoint);
-                const traceLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({color: 0x38bdf8, transparent: true, opacity: 0.7}));
-                scene.add(traceLine);
-
-                polytopeViews.push({ scene, camera, renderer, viewContainer, statePoint, traceLine, purityText: card.querySelector('.purity-val') });
+                polytopeViews.push({ scene, camera, renderer, statePoint, purityText: card.querySelector('.purity-val') });
             }
         }
 
         function initHintonLabels() {
             const top = document.getElementById('hinton-top-labels');
             const left = document.getElementById('hinton-left-labels');
-            if (!top || !left || top.children.length > 0) return;
+            if (!top || top.children.length > 0) return;
             for(let i=0; i<STATES; i++) {
                 const b = i.toString(2).padStart(4, '0');
                 const tL = document.createElement('div'); tL.className = "hinton-label col"; tL.innerText = b; top.appendChild(tL);
@@ -548,40 +459,12 @@
             }
         }
 
-        function updatePolytopeView() {
-            polytopeViews.forEach((view, q) => {
-                let p0 = 0, p1 = 0, rho01 = new Complex(0,0);
-                const mask = 1 << (3-q);
-                stateVector.forEach((amp, i) => { 
-                    const prob = amp.magSq();
-                    if (i & mask) p1 += prob; else {
-                        p0 += prob;
-                        const i1 = i | mask;
-                        rho01 = rho01.add(amp.mul(new Complex(stateVector[i1].re, -stateVector[i1].im)));
-                    }
-                });
-                const x = 2 * rho01.re, y = 2 * rho01.im, z = p0 - p1;
-                const r = Math.sqrt(x*x + y*y + z*z);
-                view.statePoint.position.set(x, z, y);
-                view.traceLine.geometry.setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(x, z, y)]);
-                view.purityText.innerText = `Purity: ${((1+r*r)/2*100).toFixed(0)}% | R: ${r.toFixed(2)}`;
-                view.scene.rotation.y += 0.005;
-                view.renderer.render(view.scene, view.camera);
-            });
-        }
-
         function updateViews(lastMatrix, lastGateInfo) {
             updateCircuitView();
             updateMatrixDisplay(lastMatrix, lastGateInfo);
             updateHintonView();
-            updatePolytopeView();
             const list = document.getElementById('probabilities-list');
-            if(list) {
-                list.innerHTML = stateVector.map((amp, i) => {
-                    const prob = amp.magSq();
-                    return prob > 0.001 ? `<div class="flex justify-between p-1 bg-slate-900/50 border-l-2 border-sky-500 rounded"><span>|${i.toString(2).padStart(4,'0')}⟩</span><span class="text-sky-400 font-bold">${(prob*100).toFixed(1)}%</span></div>` : '';
-                }).join('');
-            }
+            if(list) list.innerHTML = stateVector.map((amp, i) => amp.magSq() > 0.001 ? `<div class="p-1 text-sky-400 font-bold border-b border-slate-800">|${i.toString(2).padStart(4,'0')}⟩ ${(amp.magSq()*100).toFixed(1)}%</div>` : '').join('');
         }
 
         function updateCircuitView() {
@@ -589,37 +472,21 @@
                 const disk = document.getElementById(`disk-${i}`);
                 if (!disk) return;
                 const prob = amp.magSq();
-                const fill = disk.querySelector('.phase-fill');
-                const needle = disk.querySelector('.phase-needle');
-                fill.style.width = fill.style.height = `${Math.sqrt(prob) * 100}%`;
-                needle.style.transform = `rotate(${-amp.phase()}rad)`;
-                needle.style.opacity = prob > 0.001 ? 1 : 0.1;
-                disk.parentElement.style.opacity = prob > 0.001 ? 1 : 0.3;
+                disk.querySelector('.phase-fill').style.width = disk.querySelector('.phase-fill').style.height = `${Math.sqrt(prob) * 100}%`;
+                disk.querySelector('.phase-needle').style.transform = `rotate(${-amp.phase()}rad)`;
             });
             renderCircuitLines();
         }
 
         function updateMatrixDisplay(matrix, info) {
-            const vecDiv = document.getElementById('vector-display');
             const matDiv = document.getElementById('matrix-display');
-            const title = document.getElementById('matrix-title');
-            if (title) title.innerText = info ? `${info} Matrix` : "Gate Matrix";
-            
-            if (vecDiv) {
-                vecDiv.innerHTML = stateVector.map((v, i) => `
-                    <div class="flex justify-between text-[10px] font-mono py-0.5 border-b border-slate-800/50">
-                        <span class="text-slate-500">|${i.toString(2).padStart(4,'0')}⟩</span>
-                        <span class="${v.magSq() > 0 ? 'text-sky-400 font-bold' : 'text-slate-700'}">${v.toString()}</span>
-                    </div>`).join('');
-            }
-
             if (matDiv) {
                 matDiv.innerHTML = '';
                 for(let r=0; r<STATES; r++) {
                     for(let c=0; c<STATES; c++) {
                         const cell = document.createElement('div');
                         const val = matrix ? matrix[r][c] : (r===c ? new Complex(1) : new Complex(0));
-                        cell.className = `matrix-cell ${val.magSq() > 0 ? 'text-sky-300 font-bold bg-sky-900/20' : 'text-slate-800'}`;
+                        cell.className = `matrix-cell ${val.magSq() > 0 ? 'text-sky-300 bg-sky-900/20' : 'text-slate-800'}`;
                         cell.innerText = val.toString() === "0" ? "·" : val.toString();
                         matDiv.appendChild(cell);
                     }
@@ -634,13 +501,10 @@
             for(let i=0; i<STATES; i++) {
                 for(let j=0; j<STATES; j++) {
                     const val = stateVector[i].mul(new Complex(stateVector[j].re, -stateVector[j].im));
-                    const magnitude = val.mag();
-                    const cell = document.createElement('div');
-                    cell.className = "bg-slate-950 flex items-center justify-center";
-                    if (magnitude > 0.001) {
+                    const cell = document.createElement('div'); cell.className = "bg-slate-950 flex items-center justify-center";
+                    if (val.mag() > 0.001) {
                         const inner = document.createElement('div');
-                        inner.className = "rounded-[1px]";
-                        inner.style.width = inner.style.height = (Math.sqrt(magnitude) * 16) + 'px';
+                        inner.style.width = inner.style.height = (Math.sqrt(val.mag()) * 16) + 'px';
                         inner.style.backgroundColor = `hsl(${(val.phase() / (2 * Math.PI) * 360) + 180}, 80%, 50%)`;
                         cell.appendChild(inner);
                     }
@@ -651,38 +515,31 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            animationTime += 0.05;
+            animationTime += 0.04;
             if (activeTab === 'corkscrew') renderCorkscrew();
             if (activeTab === 'qsphere') renderQSphere();
-            if (activeTab === 'hinton') updatePolytopeView();
         }
 
         function init() {
             const container = document.getElementById('view-circuit');
-            const diskTemplate = document.getElementById('disk-template');
-            if(container && diskTemplate) {
-                for (let i = 0; i < STATES; i++) {
-                    const clone = diskTemplate.content.cloneNode(true);
-                    clone.querySelector('.phase-disk').id = `disk-${i}`;
-                    clone.querySelector('.state-label').innerText = `|${i.toString(2).padStart(4, '0')}⟩`;
-                    container.appendChild(clone);
-                }
+            for (let i = 0; i < STATES; i++) {
+                const clone = document.getElementById('disk-template').content.cloneNode(true);
+                clone.querySelector('.phase-disk').id = `disk-${i}`;
+                clone.querySelector('.state-label').innerText = `|${i.toString(2).padStart(4, '0')}⟩`;
+                container.appendChild(clone);
             }
             const circuitRows = document.getElementById('circuit-rows');
-            if (circuitRows) {
-                for (let i = 0; i < QUBITS; i++) {
-                    const row = document.createElement('div');
-                    row.className = "relative h-8 flex items-center";
-                    row.innerHTML = `<span class="absolute -left-8 text-[10px] font-bold text-slate-500">Q${i}</span><div class="qubit-line"></div><div id="row-${i}" class="gate-row flex gap-4 px-4 w-full h-full items-center relative z-10"></div>`;
-                    circuitRows.appendChild(row);
-                    const finalR = document.getElementById(`row-${i}`);
-                    finalR.addEventListener('dragover', e => { e.preventDefault(); finalR.classList.add('drag-over'); });
-                    finalR.addEventListener('dragleave', () => finalR.classList.remove('drag-over'));
-                    finalR.addEventListener('drop', e => handleDrop(e, i));
-                }
+            for (let i = 0; i < QUBITS; i++) {
+                const row = document.createElement('div');
+                row.className = "relative h-8 flex items-center";
+                row.innerHTML = `<span class="absolute -left-8 text-[10px] font-bold text-slate-500">Q${i}</span><div class="qubit-line"></div><div id="row-${i}" class="gate-row flex gap-4 px-4 w-full h-full items-center relative z-10"></div>`;
+                circuitRows.appendChild(row);
+                const finalR = document.getElementById(`row-${i}`);
+                finalR.addEventListener('dragover', e => { e.preventDefault(); finalR.classList.add('drag-over'); });
+                finalR.addEventListener('dragleave', () => finalR.classList.remove('drag-over'));
+                finalR.addEventListener('drop', e => handleDrop(e, i));
             }
-            animate();
-            runSimulation();
+            animate(); runSimulation();
         }
 
         function renderCircuitLines() {
@@ -692,21 +549,19 @@
                 row.innerHTML = '';
                 circuit.forEach((gate, idx) => {
                     const gEl = document.createElement('div');
-                    const isActive = idx < currentStep;
-                    gEl.className = `w-7 h-7 flex items-center justify-center rounded cursor-pointer transition-all shrink-0 z-20 shadow-md`;
-                    if (!isActive) gEl.classList.add('opacity-10');
-                    if (idx === currentStep - 1) gEl.classList.add('active-gate');
-
+                    gEl.className = `w-7 h-7 flex items-center justify-center rounded cursor-pointer shrink-0 z-20 ${idx < currentStep ? '' : 'opacity-10'}`;
                     if (gate.target === q) {
                         gEl.innerText = gate.type;
-                        gEl.classList.add(...getGateColor(gate.type).split(' '), 'text-white', 'font-bold', 'text-[9px]');
-                        gEl.onclick = () => { circuit.splice(idx, 1); currentStep = Math.min(currentStep, circuit.length); runSimulation(); };
+                        gEl.classList.add('bg-sky-600', 'text-white', 'font-bold', 'text-[9px]');
+                        gEl.onclick = () => { 
+                            circuit.splice(idx, 1); 
+                            // Update currentStep to reflect deletion
+                            if (currentStep > idx) currentStep--;
+                            runSimulation(); 
+                        };
                     } else if (gate.controls.includes(q)) {
                         gEl.innerHTML = '<div class="w-2.5 h-2.5 bg-white rounded-full"></div>';
-                    } else {
-                        gEl.className = 'w-7 h-7 flex items-center justify-center opacity-5 z-20';
-                        gEl.innerHTML = '<div class="w-full h-px bg-white"></div>';
-                    }
+                    } else { gEl.innerHTML = '<div class="w-full h-px bg-white/10"></div>'; }
                     row.appendChild(gEl);
                 });
             }
@@ -716,29 +571,16 @@
         function handleDrop(e, q) {
             e.preventDefault();
             const type = e.dataTransfer.getData("text");
-            if(!type) return;
             let controls = [];
-            if (type === 'CNOT') {
-                const c = prompt("Control Qubit (0-3):", "0");
-                if (c === null || isNaN(parseInt(c)) || parseInt(c) === q) return;
-                controls = [parseInt(c)];
-            }
+            if (type === 'CNOT') { const c = prompt("Control:"); if (c === null || isNaN(parseInt(c))) return; controls = [parseInt(c)]; }
             circuit.push({ type, target: q, controls });
-            currentStep = circuit.length;
-            runSimulation();
+            currentStep = circuit.length; runSimulation();
         }
 
-        function getGateColor(t) { 
-            if (t === 'H') return 'bg-indigo-600';
-            if (['X','Y','Z'].includes(t)) return 'bg-emerald-600';
-            if (['S','T'].includes(t)) return 'bg-amber-600';
-            return 'bg-rose-600'; 
-        }
         function stepForward() { if(currentStep < circuit.length) { currentStep++; runSimulation(); } }
         function stepBack() { if(currentStep > 0) { currentStep--; runSimulation(); } }
         function resetStep() { currentStep = 0; runSimulation(); }
         function resetCircuit() { circuit = []; currentStep = 0; runSimulation(); }
-
         window.onload = init;
     </script>
 </body>
