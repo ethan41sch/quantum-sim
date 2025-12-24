@@ -217,12 +217,11 @@
             let lastMatrix = null;
             let lastGateInfo = "None";
 
-            // Safety clamp: Ensure currentStep doesn't exceed array bounds
             if (currentStep > circuit.length) currentStep = circuit.length;
 
             for (let s = 0; s < currentStep; s++) {
                 const gate = circuit[s];
-                if (!gate) continue; // Guard against undefined entries
+                if (!gate) continue;
 
                 const nextState = Array(STATES).fill(0).map(() => new Complex(0, 0));
                 const bitMask = 1 << (3 - gate.target);
@@ -462,9 +461,27 @@
         function updateViews(lastMatrix, lastGateInfo) {
             updateCircuitView();
             updateMatrixDisplay(lastMatrix, lastGateInfo);
+            updateVectorDisplay();
             updateHintonView();
             const list = document.getElementById('probabilities-list');
             if(list) list.innerHTML = stateVector.map((amp, i) => amp.magSq() > 0.001 ? `<div class="p-1 text-sky-400 font-bold border-b border-slate-800">|${i.toString(2).padStart(4,'0')}⟩ ${(amp.magSq()*100).toFixed(1)}%</div>` : '').join('');
+        }
+
+        function updateVectorDisplay() {
+            const vectorDiv = document.getElementById('vector-display');
+            if (vectorDiv) {
+                vectorDiv.innerHTML = stateVector.map((amp, i) => {
+                    const isNonZero = amp.magSq() > 1e-6;
+                    return `
+                        <div class="flex justify-between items-center h-[26px] border-b border-slate-900 px-2 ${isNonZero ? 'bg-sky-500/10' : ''}">
+                            <span class="text-[8px] text-slate-500 font-mono">|${i.toString(2).padStart(4, '0')}⟩</span>
+                            <span class="text-[10px] font-mono ${isNonZero ? 'text-sky-300' : 'text-slate-700'}">
+                                ${amp.toString() === "0" ? "0" : amp.toString()}
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
 
         function updateCircuitView() {
@@ -480,6 +497,9 @@
 
         function updateMatrixDisplay(matrix, info) {
             const matDiv = document.getElementById('matrix-display');
+            const titleEl = document.getElementById('matrix-title');
+            if (titleEl) titleEl.innerText = info ? `Gate Matrix: ${info}` : "Gate Matrix";
+            
             if (matDiv) {
                 matDiv.innerHTML = '';
                 for(let r=0; r<STATES; r++) {
@@ -555,7 +575,6 @@
                         gEl.classList.add('bg-sky-600', 'text-white', 'font-bold', 'text-[9px]');
                         gEl.onclick = () => { 
                             circuit.splice(idx, 1); 
-                            // Update currentStep to reflect deletion
                             if (currentStep > idx) currentStep--;
                             runSimulation(); 
                         };
