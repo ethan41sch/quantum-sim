@@ -89,8 +89,15 @@
                         <button draggable="true" ondragstart="handleDragStart(event, 'Z')" class="gate-btn bg-emerald-800 py-2 rounded text-[10px] font-bold shadow-lg">Z</button>
                         <button draggable="true" ondragstart="handleDragStart(event, 'S')" class="gate-btn bg-amber-600 py-2 rounded text-[10px] font-bold shadow-lg">S</button>
                         <button draggable="true" ondragstart="handleDragStart(event, 'T')" class="gate-btn bg-amber-700 py-2 rounded text-[10px] font-bold shadow-lg">T</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'CNOT')" class="gate-btn bg-rose-600 py-2 rounded text-[10px] font-bold col-span-2 shadow-lg">CNOT</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'CNOT')" class="gate-btn bg-rose-600 py-2 rounded text-[10px] font-bold shadow-lg">CNOT</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'CZ')" class="gate-btn bg-indigo-800 py-2 rounded text-[10px] font-bold shadow-lg">CZ</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'MCZ')" class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold col-span-2 shadow-lg">MCZ (All Ctrl)</button>
                     </div>
+                </section>
+
+                <section class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                    <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Pre-built Operators</h2>
+                    <button onclick="addGroverDiffusion()" class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">Grover Diffusion</button>
                 </section>
                 
                 <section class="bg-slate-800 p-3 rounded-xl border border-slate-700 overflow-y-auto max-h-[300px]">
@@ -256,7 +263,7 @@
                         const phase = (ctrlSatisfied && bitIsSet) ? new Complex(0, -1) : (ctrlSatisfied ? new Complex(0, 1) : new Complex(1));
                         nextState[target] = nextState[target].add(amp.mul(phase));
                         if (lastMatrix) lastMatrix[target][i] = phase;
-                    } else if (gate.type === 'Z') {
+                    } else if (gate.type === 'Z' || gate.type === 'CZ' || gate.type === 'MCZ') {
                         const phase = (ctrlSatisfied && bitIsSet) ? new Complex(-1) : new Complex(1);
                         nextState[i] = nextState[i].add(amp.mul(phase));
                         if (lastMatrix) lastMatrix[i][i] = phase;
@@ -352,7 +359,7 @@
                 line.material.color.setHSL(idx / STATES, 0.8, 0.5);
                 
                 const pos = line.geometry.attributes.position.array;
-const phase0 = amp.phase();
+                const phase0 = amp.phase();
                 const radius = Math.sqrt(prob) * BASE_RADIUS;
                 const xCenter = idx - 7.5;
 
@@ -399,19 +406,17 @@ const phase0 = amp.phase();
             qsphere.controls = new THREE.OrbitControls(qsphere.camera, qsphere.renderer.domElement);
             qsphere.camera.position.set(6, 6, 8);
 
-            // 1. Add the Global Translucent Shell
             const shellGeom = new THREE.SphereGeometry(4, 32, 32);
             const shellMat = new THREE.MeshBasicMaterial({ color: 0x334155, wireframe: true, transparent: true, opacity: 0.1 });
             const shell = new THREE.Mesh(shellGeom, shellMat);
             qsphere.scene.add(shell);
 
-            // 2. Add Latitudinal Rings (Hamming Tiers)
             for (let k = 0; k <= QUBITS; k++) {
                 const phi = (k / QUBITS) * Math.PI;
                 const r = 4 * Math.sin(phi);
                 const y = 4 * Math.cos(phi);
                 
-                if (r > 0.1) { // Avoid pole points for rings
+                if (r > 0.1) {
                     const ringGeom = new THREE.RingGeometry(r - 0.02, r + 0.02, 64);
                     const ringMat = new THREE.MeshBasicMaterial({ color: 0x475569, side: THREE.DoubleSide, transparent: true, opacity: 0.2 });
                     const ring = new THREE.Mesh(ringGeom, ringMat);
@@ -421,7 +426,6 @@ const phase0 = amp.phase();
                 }
             }
 
-            // 3. Add Longitudinal Meridians
             for (let m = 0; m < 8; m++) {
                 const lon = (m / 8) * Math.PI * 2;
                 const points = [];
@@ -510,8 +514,30 @@ const phase0 = amp.phase();
             updateMatrixDisplay(lastMatrix, lastGateInfo);
             updateVectorDisplay();
             updateHintonView();
+            updateInterpretation(lastGateInfo);
             const list = document.getElementById('probabilities-list');
             if(list) list.innerHTML = stateVector.map((amp, i) => amp.magSq() > 0.001 ? `<div class="p-1 text-sky-400 font-bold border-b border-slate-800">|${i.toString(2).padStart(4,'0')}⟩ ${(amp.magSq()*100).toFixed(1)}%</div>` : '').join('');
+        }
+
+        function updateInterpretation(info) {
+            const content = document.getElementById('insight-content');
+            const tag = document.getElementById('insight-gate-tag');
+            if (!content || !tag) return;
+            tag.innerText = info ? info.split(' ')[0] : "NONE";
+            
+            const interpretations = {
+                'H': "Creates a superposition by mapping basis states to balanced linear combinations.",
+                'X': "Bit-flip: maps |0⟩ to |1⟩ and vice versa.",
+                'Y': "Bit and phase flip: introduces an imaginary phase component.",
+                'Z': "Phase-flip: flips the sign of the |1⟩ component's amplitude.",
+                'S': "Phase gate (√Z): rotates the state vector by π/2 around the Z-axis.",
+                'T': "π/4 phase gate (⁴√Z): essential for universal fault-tolerant quantum computing.",
+                'CNOT': "Entangles two qubits: flips the target if the control is |1⟩.",
+                'CZ': "Conditional Phase Flip: Negates the phase only if both qubits are |1⟩.",
+                'MCZ': "Multi-Controlled Phase: The core of the Grover reflection, flipping the sign only if all controlled qubits are set."
+            };
+            const gType = info ? info.split(' ')[0] : null;
+            content.innerHTML = gType ? `<p>${interpretations[gType] || "Transforms the computational basis states through unitary evolution."}</p>` : `<p class="text-slate-400 italic">Drag a gate onto a qubit line to see how it transforms the quantum state.</p>`;
         }
 
         function updateVectorDisplay() {
@@ -618,7 +644,7 @@ const phase0 = amp.phase();
                     const gEl = document.createElement('div');
                     gEl.className = `w-7 h-7 flex items-center justify-center rounded cursor-pointer shrink-0 z-20 ${idx < currentStep ? '' : 'opacity-10'}`;
                     if (gate.target === q) {
-                        gEl.innerText = gate.type;
+                        gEl.innerText = (gate.type === 'CZ' || gate.type === 'MCZ') ? 'Z' : gate.type;
                         gEl.classList.add('bg-sky-600', 'text-white', 'font-bold', 'text-[9px]');
                         gEl.onclick = () => { 
                             circuit.splice(idx, 1); 
@@ -638,9 +664,25 @@ const phase0 = amp.phase();
             e.preventDefault();
             const type = e.dataTransfer.getData("text");
             let controls = [];
-            if (type === 'CNOT') { const c = prompt("Control:"); if (c === null || isNaN(parseInt(c))) return; controls = [parseInt(c)]; }
+            if (type === 'CNOT' || type === 'CZ') { 
+                const c = prompt(`Control for ${type} (0-3):`); 
+                if (c === null || isNaN(parseInt(c)) || parseInt(c) === q) return; 
+                controls = [parseInt(c)]; 
+            } else if (type === 'MCZ') {
+                controls = Array.from({length: QUBITS}, (_, i) => i).filter(i => i !== q);
+            }
             circuit.push({ type, target: q, controls });
             currentStep = circuit.length; runSimulation();
+        }
+
+        function addGroverDiffusion() {
+            const hGates = Array.from({length: QUBITS}, (_, i) => ({type: 'H', target: i, controls: []}));
+            const xGates = Array.from({length: QUBITS}, (_, i) => ({type: 'X', target: i, controls: []}));
+            const mczGate = {type: 'MCZ', target: QUBITS - 1, controls: Array.from({length: QUBITS - 1}, (_, i) => i)};
+            
+            circuit.push(...hGates, ...xGates, mczGate, ...xGates, ...hGates);
+            currentStep = circuit.length;
+            runSimulation();
         }
 
         function stepForward() { if(currentStep < circuit.length) { currentStep++; runSimulation(); } }
