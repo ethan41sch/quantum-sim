@@ -18,7 +18,6 @@
         .phase-fill { position: absolute; border-radius: 50%; background: rgba(56, 189, 248, 0.3); }
         .active-gate { outline: 3px solid #38bdf8; outline-offset: 2px; box-shadow: 0 0 15px rgba(56, 189, 248, 0.5); }
         
-        /* Labeled Hinton Grid */
         .hinton-wrapper { display: inline-grid; grid-template-areas: ". top" "left main"; gap: 4px; padding: 10px; background: #020617; border-radius: 8px; border: 1px solid #1e293b; }
         .hinton-top-labels { grid-area: top; display: flex; }
         .hinton-left-labels { grid-area: left; display: flex; flex-direction: column; }
@@ -37,6 +36,9 @@
         
         .tab-btn { border-bottom: 2px solid transparent; opacity: 0.6; }
         .tab-btn.active { border-color: #38bdf8; color: #38bdf8; opacity: 1; }
+
+        .insight-card { border-left: 4px solid #38bdf8; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="p-2 sm:p-4">
@@ -62,7 +64,23 @@
         </header>
 
         <div class="grid grid-cols-12 gap-4">
-            <div class="col-span-12 lg:col-span-2 space-y-3">
+            <div class="col-span-12 lg:col-span-3 space-y-3">
+                <!-- Advanced Dynamic Insights Panel -->
+                <section class="insight-card bg-slate-800/90 p-4 rounded-r-lg border border-slate-700 shadow-2xl overflow-hidden">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-[11px] font-bold text-sky-400 uppercase tracking-widest flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                            Live Interpretation
+                        </h2>
+                        <span id="insight-gate-tag" class="text-[9px] bg-sky-900/50 text-sky-200 px-2 py-0.5 rounded border border-sky-700">NONE</span>
+                    </div>
+                    <div id="insight-content" class="text-xs leading-relaxed text-slate-200 space-y-3">
+                        <p class="text-slate-400 italic">Drag a gate onto a qubit line to see how it transforms the quantum state.</p>
+                    </div>
+                </section>
+
                 <section class="bg-slate-800 p-3 rounded-xl border border-slate-700">
                     <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Gates</h2>
                     <div class="grid grid-cols-2 gap-1.5">
@@ -75,20 +93,14 @@
                         <button draggable="true" ondragstart="handleDragStart(event, 'CNOT')" class="gate-btn bg-rose-600 py-2 rounded text-[10px] font-bold col-span-2 shadow-lg">CNOT</button>
                     </div>
                 </section>
-
-                <section class="bg-slate-800 p-3 rounded-xl border border-indigo-500/50">
-                    <button onclick="buildGroverDiffusion()" class="w-full bg-indigo-700 hover:bg-indigo-600 py-2 rounded text-[10px] font-bold shadow-lg border border-indigo-400 transition-colors uppercase tracking-tighter">
-                        Grover |111⟩
-                    </button>
-                </section>
                 
                 <section class="bg-slate-800 p-3 rounded-xl border border-slate-700 overflow-y-auto max-h-[300px]">
-                    <h2 class="text-[10px] font-bold text-slate-400 uppercase mb-2">States</h2>
+                    <h2 class="text-[10px] font-bold text-slate-400 uppercase mb-2">Populations</h2>
                     <div id="probabilities-list" class="space-y-1 text-[10px] font-mono"></div>
                 </section>
             </div>
 
-            <div class="col-span-12 lg:col-span-10 space-y-4">
+            <div class="col-span-12 lg:col-span-9 space-y-4">
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 overflow-x-auto">
                     <div id="circuit-rows" class="space-y-2 relative py-2"></div>
                 </div>
@@ -106,19 +118,17 @@
 
                     <div id="view-hinton" class="view-panel hidden">
                         <div class="flex flex-col xl:flex-row gap-8 items-start justify-center">
-                            <!-- Hinton Left Column -->
-                            <div class="flex flex-col items-center flex-shrink-0">
-                                <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider">Hinton Diagram (Density Matrix $\rho$)</h3>
-                                <div class="hinton-wrapper">
+                            <div class="flex-shrink-0">
+                                <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Density Matrix ($\rho$)</h3>
+                                <div class="hinton-wrapper mx-auto">
                                     <div id="hinton-top-labels" class="hinton-top-labels"></div>
                                     <div id="hinton-left-labels" class="hinton-left-labels"></div>
                                     <div id="hinton-container" class="hinton-grid"></div>
                                 </div>
                             </div>
-                            <!-- Polytopes Right Column -->
-                            <div class="flex-grow w-full max-w-[600px]">
-                                <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider text-center xl:text-left">Partial Trace Polytopes</h3>
-                                <div id="polytope-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+                            <div class="flex-grow w-full max-w-[500px]">
+                                <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Local Qubit States</h3>
+                                <div id="polytope-container" class="grid grid-cols-2 gap-4"></div>
                             </div>
                         </div>
                     </div>
@@ -129,15 +139,12 @@
                                 <h3 class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">State Vector |ψ⟩</h3>
                                 <div class="bracket-container p-3 bg-slate-950 rounded-lg w-full">
                                     <div class="bracket-left"></div>
-                                    <div id="vector-display" class="grid grid-cols-2 gap-x-4 w-full px-2"></div>
+                                    <div id="vector-display" class="grid grid-cols-1 gap-x-4 w-full px-2"></div>
                                     <div class="bracket-right"></div>
                                 </div>
                             </div>
                             <div class="flex-1 min-w-[200px]">
-                                <div class="flex items-center justify-between mb-2">
-                                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Operator Matrix</h3>
-                                    <span id="last-gate-label" class="bg-sky-900/40 text-sky-300 px-2 py-0.5 rounded text-[10px] font-bold border border-sky-800">None</span>
-                                </div>
+                                <h3 id="matrix-title" class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Gate Matrix</h3>
                                 <div class="bracket-container bg-slate-950 p-1 rounded-lg border border-slate-800 w-full">
                                     <div class="bracket-left"></div>
                                     <div class="matrix-scroll-wrapper w-full">
@@ -197,9 +204,7 @@
         function switchTab(tabId) {
             document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            
-            const targetPanel = document.getElementById(`view-${tabId}`);
-            targetPanel.classList.remove('hidden');
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
             document.getElementById(`tab-${tabId}`).classList.add('active');
             activeTab = tabId;
             
@@ -225,7 +230,7 @@
                 
                 if (s === currentStep - 1) {
                     lastMatrix = Array(STATES).fill(0).map(() => Array(STATES).fill(new Complex(0,0)));
-                    lastGateInfo = `${gate.type} (Q${gate.target})`;
+                    lastGateInfo = `${gate.type} on Q${gate.target}`;
                 }
 
                 for (let i = 0; i < STATES; i++) {
@@ -245,7 +250,7 @@
                             nextState[idx1] = nextState[idx1].add(amp.mul(new Complex(-INV_SQRT2)));
                             if (lastMatrix) { lastMatrix[idx0][i] = new Complex(INV_SQRT2); lastMatrix[idx1][i] = new Complex(-INV_SQRT2); }
                         }
-                    } else if (gate.type === 'X' || gate.type === 'CNOT') {
+                    } else if (gate.type === 'X' || (gate.type === 'CNOT')) {
                         const target = ctrlSatisfied ? i ^ bitMask : i;
                         nextState[target] = nextState[target].add(amp);
                         if (lastMatrix) lastMatrix[target][i] = new Complex(1);
@@ -271,6 +276,67 @@
                 stateVector = nextState;
             }
             updateViews(lastMatrix, lastGateInfo);
+            updateInsights();
+        }
+
+        function updateInsights() {
+            const container = document.getElementById('insight-content');
+            const tag = document.getElementById('insight-gate-tag');
+            const lastGate = circuit[currentStep - 1];
+            
+            if (currentStep === 0) {
+                tag.innerText = "START";
+                container.innerHTML = `<p>The system is in the ground state <b>|0000⟩</b>. Every qubit is a definite '0'. Apply an <b>H (Hadamard)</b> gate to see superposition begin.</p>`;
+                return;
+            }
+
+            tag.innerText = lastGate.type + (lastGate.controls.length > 0 ? "*" : "");
+            
+            let message = "";
+            const probCount = stateVector.filter(v => v.magSq() > 0.01).length;
+
+            switch(activeTab) {
+                case 'circuit':
+                    if (lastGate.type === 'H') {
+                        message = `<p><b>Hadamard (H) Applied:</b> Notice how the phase disks are now splitting. Instead of one large blue circle, you have two smaller ones. Each represents a 50% probability of finding that state.</p>`;
+                    } else if (lastGate.type === 'X') {
+                        message = `<p><b>NOT (X) Applied:</b> Look at the binary labels. The gate flipped the ${lastGate.target}-th bit. The probability "mass" has shifted to the corresponding binary state.</p>`;
+                    } else {
+                        message = `<p><b>${lastGate.type} Applied:</b> This rotation adjusted the complex phase. Watch the <b>needle</b> inside the disk; it points in a different direction now, representing a phase shift.</p>`;
+                    }
+                    break;
+
+                case 'corkscrew':
+                    if (probCount > 1) {
+                        message = `<p><b>Wave Superposition:</b> Look at the <b>White Composite Wave</b> on the far left. It is the sum of all individual basis waves. Notice how it creates a unique interference pattern.</p>
+                                   <p class="mt-2">The <b>colored spirals</b> represent different outcomes. Because you applied ${lastGate.type}, these waves are now interacting. If they were 180° apart, they would cancel out (destructive interference).</p>`;
+                    } else {
+                        message = `<p><b>Pure State:</b> Since there is only one outcome, the white composite wave matches the basis wave exactly. There is no interference to observe yet.</p>`;
+                    }
+                    break;
+
+                case 'qsphere':
+                    message = `<p>The <b>Q-Sphere</b> is now showing <b>${probCount}</b> active nodes. Since you applied ${lastGate.type}, focus on the <b>colors</b>.</p>
+                               <p class="mt-2">Different colors mean different relative phases. If all nodes were the same color, they would be "in phase". Here, the gate has likely introduced a phase rotation.</p>`;
+                    break;
+
+                case 'hinton':
+                    const p1 = parseFloat(polytopeViews[0]?.purityText.innerText.match(/(\d+)%/)?.[1] || 100);
+                    if (p1 < 90) {
+                        message = `<p><b>Entanglement Detected!</b> Look at the <b>Polytopes (Bloch Spheres)</b>. Notice they are no longer on the surface of the sphere—they have <b>shrunk toward the center</b>.</p>
+                                   <p class="mt-2">This means the qubits no longer have a definite state of their own; they only exist as part of a correlated pair. The <b>Hinton Diagram</b> on the left shows off-diagonal colored squares—these represent the "coherence" or link between these states.</p>`;
+                    } else {
+                        message = `<p><b>Independent States:</b> The qubits are still "pure". In the Hinton Diagram, focus on the <b>Diagonal</b>. These large squares show where the probability lives. Since there are no off-diagonal connections, there is no entanglement yet.</p>`;
+                    }
+                    break;
+
+                case 'matrix':
+                    message = `<p>Focus on the <b>Matrix Grid</b>. Each column represents what happens to a specific basis state (like |0000⟩) when the ${lastGate.type} gate hits it.</p>
+                               <p class="mt-2">The <b>State Vector</b> on the left shows the resulting coefficients. Any complex numbers (with an 'i') mean the gate pushed the state into the complex plane.</p>`;
+                    break;
+            }
+
+            container.innerHTML = message;
         }
 
         function createTextSprite(text, color = '#94a3b8') {
@@ -325,13 +391,14 @@
 
             const compositeGeom = new THREE.BufferGeometry();
             compositeGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(100*3), 3));
-            corkscrew.compositeLine = new THREE.Line(compositeGeom, new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 }));
+            corkscrew.compositeLine = new THREE.Line(compositeGeom, new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 3 }));
             corkscrew.scene.add(corkscrew.compositeLine);
         }
 
         function renderCorkscrew() {
             if (!corkscrew.renderer) return;
             const compositePoints = new Array(100).fill(0).map(() => new Complex(0,0));
+            const BASE_RADIUS = 2.5;
 
             stateVector.forEach((amp, idx) => {
                 const prob = amp.magSq();
@@ -353,7 +420,7 @@
                 
                 const pos = line.geometry.attributes.position.array;
                 const phase0 = amp.phase();
-                const radius = Math.sqrt(prob) * 2.5;
+                const radius = Math.sqrt(prob) * BASE_RADIUS;
                 
                 line.material.color.setHSL(idx / STATES, 0.8, 0.5);
 
@@ -375,8 +442,8 @@
             const cPos = corkscrew.compositeLine.geometry.attributes.position.array;
             for(let i=0; i<100; i++) {
                 const t = i / 10;
-                cPos[i*3] = -9;
-                cPos[i*3+1] = compositePoints[i].re * 0.4;
+                cPos[i*3] = -9.5;
+                cPos[i*3+1] = compositePoints[i].re;
                 cPos[i*3+2] = t;
             }
             corkscrew.compositeLine.geometry.attributes.position.needsUpdate = true;
@@ -444,12 +511,12 @@
 
             for(let q=0; q<QUBITS; q++) {
                 const card = document.createElement('div');
-                card.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 flex flex-col items-center min-h-[160px]";
-                card.innerHTML = `<h4 class="text-[9px] font-bold text-slate-400 uppercase mb-1">Q${q}</h4><div id="poly-${q}" class="w-full h-28 block overflow-hidden"></div><div class="purity-val text-[8px] text-sky-400 mt-1"></div>`;
+                card.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 flex flex-col items-center min-h-[140px]";
+                card.innerHTML = `<h4 class="text-[9px] font-bold text-slate-400 mb-1">Q${q}</h4><div id="poly-${q}" class="w-full h-24 block"></div><div class="purity-val text-[8px] text-sky-400 mt-1"></div>`;
                 container.appendChild(card);
 
                 const viewContainer = card.querySelector(`#poly-${q}`);
-                const w = viewContainer.clientWidth || 200, h = viewContainer.clientHeight || 112;
+                const w = viewContainer.clientWidth || 180, h = viewContainer.clientHeight || 100;
                 const scene = new THREE.Scene();
                 const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
                 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -474,18 +541,10 @@
             const top = document.getElementById('hinton-top-labels');
             const left = document.getElementById('hinton-left-labels');
             if (!top || !left || top.children.length > 0) return;
-
             for(let i=0; i<STATES; i++) {
                 const b = i.toString(2).padStart(4, '0');
-                const tL = document.createElement('div');
-                tL.className = "hinton-label col";
-                tL.innerText = b;
-                top.appendChild(tL);
-
-                const lL = document.createElement('div');
-                lL.className = "hinton-label row";
-                lL.innerText = b;
-                left.appendChild(lL);
+                const tL = document.createElement('div'); tL.className = "hinton-label col"; tL.innerText = b; top.appendChild(tL);
+                const lL = document.createElement('div'); lL.className = "hinton-label row"; lL.innerText = b; left.appendChild(lL);
             }
         }
 
@@ -543,14 +602,14 @@
         function updateMatrixDisplay(matrix, info) {
             const vecDiv = document.getElementById('vector-display');
             const matDiv = document.getElementById('matrix-display');
-            const label = document.getElementById('last-gate-label');
-            if (label) label.innerText = info;
+            const title = document.getElementById('matrix-title');
+            if (title) title.innerText = info ? `${info} Matrix` : "Gate Matrix";
             
             if (vecDiv) {
                 vecDiv.innerHTML = stateVector.map((v, i) => `
                     <div class="flex justify-between text-[10px] font-mono py-0.5 border-b border-slate-800/50">
                         <span class="text-slate-500">|${i.toString(2).padStart(4,'0')}⟩</span>
-                        <span class="${v.magSq() > 0 ? 'text-sky-400' : 'text-slate-700'}">${v.toString()}</span>
+                        <span class="${v.magSq() > 0 ? 'text-sky-400 font-bold' : 'text-slate-700'}">${v.toString()}</span>
                     </div>`).join('');
             }
 
@@ -623,23 +682,6 @@
                 }
             }
             animate();
-            runSimulation();
-        }
-
-        function buildGroverDiffusion() {
-            circuit = [];
-            [0,1,2].forEach(q => circuit.push({ type: 'H', target: q, controls: [] }));
-            circuit.push({ type: 'H', target: 2, controls: [] });
-            circuit.push({ type: 'CNOT', target: 2, controls: [0, 1] });
-            circuit.push({ type: 'H', target: 2, controls: [] });
-            [0,1,2].forEach(q => circuit.push({ type: 'H', target: q, controls: [] }));
-            [0,1,2].forEach(q => circuit.push({ type: 'X', target: q, controls: [] }));
-            circuit.push({ type: 'H', target: 2, controls: [] });
-            circuit.push({ type: 'CNOT', target: 2, controls: [0, 1] });
-            circuit.push({ type: 'H', target: 2, controls: [] });
-            [0,1,2].forEach(q => circuit.push({ type: 'X', target: q, controls: [] }));
-            [0,1,2].forEach(q => circuit.push({ type: 'H', target: q, controls: [] }));
-            currentStep = circuit.length;
             runSimulation();
         }
 
