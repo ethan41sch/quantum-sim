@@ -30,9 +30,9 @@
         .bracket-left { border-left: 3px solid #94a3b8; border-top: 3px solid #94a3b8; border-bottom: 3px solid #94a3b8; width: 10px; margin-right: 4px; border-radius: 4px 0 0 4px; }
         .bracket-right { border-right: 3px solid #94a3b8; border-top: 3px solid #94a3b8; border-bottom: 3px solid #94a3b8; width: 10px; margin-left: 4px; border-radius: 0 4px 4px 0; }
         
-        .matrix-scroll-wrapper { max-height: 400px; overflow: auto; border: 1px solid #1e293b; border-radius: 4px; }
-        .matrix-grid { display: grid; grid-template-columns: repeat(16, minmax(45px, 1fr)); background: #020617; }
-        .matrix-cell { font-size: 10px; padding: 6px 2px; text-align: center; border: 0.5px solid #1e293b; font-family: monospace; }
+        .matrix-scroll-wrapper { width: 100%; overflow: hidden; border: 1px solid #1e293b; border-radius: 4px; }
+        .matrix-grid { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); background: #020617; width: 100%; }
+        .matrix-cell { font-size: 8px; padding: 4px 1px; text-align: center; border: 0.5px solid #1e293b; font-family: monospace; white-space: nowrap; overflow: hidden; }
         
         .tab-btn { border-bottom: 2px solid transparent; opacity: 0.6; }
         .tab-btn.active { border-color: #38bdf8; color: #38bdf8; opacity: 1; }
@@ -138,11 +138,11 @@
                                     <div class="bracket-right"></div>
                                 </div>
                             </div>
-                            <div class="flex-1 min-w-[200px]">
+                            <div class="flex-[3] min-w-[400px]">
                                 <h3 id="matrix-title" class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Gate Matrix</h3>
                                 <div class="bracket-container bg-slate-950 p-1 rounded-lg border border-slate-800 w-full">
                                     <div class="bracket-left"></div>
-                                    <div class="matrix-scroll-wrapper w-full">
+                                    <div class="matrix-scroll-wrapper">
                                         <div id="matrix-display" class="matrix-grid"></div>
                                     </div>
                                     <div class="bracket-right"></div>
@@ -352,7 +352,7 @@
                 line.material.color.setHSL(idx / STATES, 0.8, 0.5);
                 
                 const pos = line.geometry.attributes.position.array;
-                const phase0 = amp.phase();
+const phase0 = amp.phase();
                 const radius = Math.sqrt(prob) * BASE_RADIUS;
                 const xCenter = idx - 7.5;
 
