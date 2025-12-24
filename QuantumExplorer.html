@@ -397,17 +397,54 @@ const phase0 = amp.phase();
             qsphere.renderer.setSize(container.clientWidth, container.clientHeight);
             container.appendChild(qsphere.renderer.domElement);
             qsphere.controls = new THREE.OrbitControls(qsphere.camera, qsphere.renderer.domElement);
-            qsphere.camera.position.set(6, 6, 6);
+            qsphere.camera.position.set(6, 6, 8);
+
+            // 1. Add the Global Translucent Shell
+            const shellGeom = new THREE.SphereGeometry(4, 32, 32);
+            const shellMat = new THREE.MeshBasicMaterial({ color: 0x334155, wireframe: true, transparent: true, opacity: 0.1 });
+            const shell = new THREE.Mesh(shellGeom, shellMat);
+            qsphere.scene.add(shell);
+
+            // 2. Add Latitudinal Rings (Hamming Tiers)
+            for (let k = 0; k <= QUBITS; k++) {
+                const phi = (k / QUBITS) * Math.PI;
+                const r = 4 * Math.sin(phi);
+                const y = 4 * Math.cos(phi);
+                
+                if (r > 0.1) { // Avoid pole points for rings
+                    const ringGeom = new THREE.RingGeometry(r - 0.02, r + 0.02, 64);
+                    const ringMat = new THREE.MeshBasicMaterial({ color: 0x475569, side: THREE.DoubleSide, transparent: true, opacity: 0.2 });
+                    const ring = new THREE.Mesh(ringGeom, ringMat);
+                    ring.rotation.x = Math.PI / 2;
+                    ring.position.y = y;
+                    qsphere.scene.add(ring);
+                }
+            }
+
+            // 3. Add Longitudinal Meridians
+            for (let m = 0; m < 8; m++) {
+                const lon = (m / 8) * Math.PI * 2;
+                const points = [];
+                for (let lat = 0; lat <= 20; lat++) {
+                    const p = (lat / 20) * Math.PI;
+                    points.push(new THREE.Vector3(4 * Math.sin(p) * Math.cos(lon), 4 * Math.cos(p), 4 * Math.sin(p) * Math.sin(lon)));
+                }
+                const meridianGeom = new THREE.BufferGeometry().setFromPoints(points);
+                const meridian = new THREE.Line(meridianGeom, new THREE.LineBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.1 }));
+                qsphere.scene.add(meridian);
+            }
+
             for(let i=0; i<STATES; i++) {
-                const node = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+                const node = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
                 const hamming = i.toString(2).split('1').length - 1;
                 const phi = (hamming / QUBITS) * Math.PI;
                 const theta = (i / STATES) * Math.PI * 2;
                 node.position.set(4 * Math.sin(phi) * Math.cos(theta), 4 * Math.cos(phi), 4 * Math.sin(phi) * Math.sin(theta));
                 qsphere.scene.add(node);
                 qsphere.nodes.push(node);
+
                 const label = createTextSprite(`|${i.toString(2).padStart(4,'0')}⟩`);
-                label.position.copy(node.position).multiplyScalar(1.2);
+                label.position.copy(node.position).multiplyScalar(1.25);
                 qsphere.scene.add(label);
                 qsphere.labels.push(label);
             }
@@ -418,9 +455,19 @@ const phase0 = amp.phase();
             stateVector.forEach((amp, i) => {
                 const prob = amp.magSq();
                 const node = qsphere.nodes[i];
-                if (!node) return;
-                if (prob < 0.001) { node.scale.setScalar(0.2); node.material.color.setHex(0x1e293b); } 
-                else { node.scale.setScalar(0.2 + Math.sqrt(prob) * 2.5); node.material.color.setHSL(amp.phase()/(2*Math.PI) + 0.5, 0.8, 0.5); }
+                const label = qsphere.labels[i];
+                if (!node || !label) return;
+
+                if (prob < 0.001) { 
+                    node.scale.setScalar(0.4); 
+                    node.material.color.setHex(0x1e293b); 
+                    label.visible = false;
+                } 
+                else { 
+                    label.visible = true;
+                    node.scale.setScalar(0.5 + Math.sqrt(prob) * 3.5); 
+                    node.material.color.setHSL(amp.phase()/(2*Math.PI) + 0.5, 0.8, 0.5); 
+                }
             });
             qsphere.renderer.render(qsphere.scene, qsphere.camera);
         }
