@@ -91,7 +91,8 @@
                         <button draggable="true" ondragstart="handleDragStart(event, 'T')" class="gate-btn bg-amber-700 py-2 rounded text-[10px] font-bold shadow-lg">T</button>
                         <button draggable="true" ondragstart="handleDragStart(event, 'CNOT')" class="gate-btn bg-rose-600 py-2 rounded text-[10px] font-bold shadow-lg">CNOT</button>
                         <button draggable="true" ondragstart="handleDragStart(event, 'CZ')" class="gate-btn bg-indigo-800 py-2 rounded text-[10px] font-bold shadow-lg">CZ</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'MCZ')" class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold col-span-2 shadow-lg">MCZ (All Ctrl)</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'MCZ')" class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">MCZ (All Ctrl)</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'U')" class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">U(&theta;,&phi;,&lambda;)</button>
                     </div>
                 </section>
 
@@ -122,7 +123,7 @@
                     <div id="view-hinton" class="view-panel hidden">
                         <div class="flex flex-col xl:flex-row gap-8 items-start justify-center">
                             <div class="flex-shrink-0">
-                                <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Density Matrix ($\rho$)</h3>
+                                <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Density Matrix</h3>
                                 <div class="hinton-wrapper mx-auto">
                                     <div id="hinton-top-labels" class="hinton-top-labels"></div>
                                     <div id="hinton-left-labels" class="hinton-left-labels"></div>
@@ -276,6 +277,35 @@
                         nextState[i] = nextState[i].add(amp.mul(phase));
                         if (lastMatrix) lastMatrix[i][i] = phase;
                     }
+                    else if (gate.type === 'U') {
+                        const [theta, phi, lambda] = gate.angles;
+                        const cosT = Math.cos(theta / 2);
+                        const sinT = Math.sin(theta / 2);
+
+                        // Calculate the four matrix elements as Complex numbers
+                        const u00 = new Complex(cosT);
+                        const u01 = new Complex(-Math.cos(lambda) * sinT, -Math.sin(lambda) * sinT);
+                        const u10 = new Complex(Math.cos(phi) * sinT, Math.sin(phi) * sinT);
+                        const u11 = new Complex(Math.cos(phi + lambda) * cosT, Math.sin(phi + lambda) * cosT);
+
+                        const idx0 = i & ~bitMask;
+                        const idx1 = i | bitMask;
+
+                        if (!bitIsSet) {
+                            const amp0 = stateVector[idx0];
+                            const amp1 = stateVector[idx1];
+
+                            nextState[idx0] = amp0.mul(u00).add(amp1.mul(u01));
+                            nextState[idx1] = amp0.mul(u10).add(amp1.mul(u11));
+                            
+                            if (lastMatrix) {
+                                lastMatrix[idx0][idx0] = u00;
+                                lastMatrix[idx0][idx1] = u01;
+                                lastMatrix[idx1][idx0] = u10;
+                                lastMatrix[idx1][idx1] = u11;
+                            }
+                        }
+                    }
                 }
                 stateVector = nextState;
             }
@@ -283,11 +313,18 @@
         }
 
         function createTextSprite(text, color = '#94a3b8') {
+            const formattedText = text.replace('|', '∣').replace('>', '⟩');          
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = 128; canvas.height = 64;
+
+            ctx.fillStyle = color;
+            ctx.font = 'bold 44px "Courier New", monospace'; 
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';            
+            
             ctx.fillStyle = color; ctx.font = 'Bold 32px monospace'; ctx.textAlign = 'center';
-            ctx.fillText(text, 64, 40);
+            ctx.fillText(formattedText, 64, 40);
             const texture = new THREE.CanvasTexture(canvas);
             const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
             const sprite = new THREE.Sprite(spriteMaterial);
@@ -405,6 +442,7 @@
             container.appendChild(qsphere.renderer.domElement);
             qsphere.controls = new THREE.OrbitControls(qsphere.camera, qsphere.renderer.domElement);
             qsphere.camera.position.set(6, 6, 8);
+            qsphere.camera.lookAt(0,0,0);
 
             const shellGeom = new THREE.SphereGeometry(4, 32, 32);
             const shellMat = new THREE.MeshBasicMaterial({ color: 0x334155, wireframe: true, transparent: true, opacity: 0.1 });
@@ -480,23 +518,72 @@
             const container = document.getElementById('polytope-container');
             if (!container || polytopeViews.length > 0) return;
             container.innerHTML = '';
+            polytopeViews = [];
+
             for(let q=0; q<QUBITS; q++) {
                 const card = document.createElement('div');
-                card.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 flex flex-col items-center min-h-[140px]";
-                card.innerHTML = `<h4 class="text-[9px] font-bold text-slate-400 mb-1">Q${q}</h4><div id="poly-${q}" class="w-full h-24 block"></div><div class="purity-val text-[8px] text-sky-400 mt-1"></div>`;
+                card.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 flex flex-col items-center min-h-[160px]";
+                card.innerHTML = `<h4 class="text-[9px] font-bold text-slate-400 uppercase mb-1">Q${q}</h4><div id="poly-${q}" class="w-full h-28 block overflow-hidden"></div><div class="purity-val text-[8px] text-sky-400 mt-1"></div>`;
                 container.appendChild(card);
-                const vC = card.querySelector(`#poly-${q}`);
+
+                const viewContainer = card.querySelector(`#poly-${q}`);
+                const w = viewContainer.clientWidth || 200, h = viewContainer.clientHeight || 112;
                 const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(40, vC.clientWidth / vC.clientHeight, 0.1, 100);
+                const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
                 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-                renderer.setSize(vC.clientWidth, vC.clientHeight);
-                vC.appendChild(renderer.domElement);
-                camera.position.set(2, 2, 4); camera.lookAt(0,0,0);
+                const controls = new THREE.OrbitControls(camera, renderer.domElement);
+                renderer.setSize(w, h);
+                viewContainer.appendChild(renderer.domElement);
+                camera.position.set(3, 2, -4);
+                camera.lookAt(0,0,0);
+                const bloch = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 12), new THREE.MeshBasicMaterial({ color: 0x475569, wireframe: true, transparent: true, opacity: 0.1 }));
+                scene.add(bloch);
+
                 const statePoint = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
                 scene.add(statePoint);
-                polytopeViews.push({ scene, camera, renderer, statePoint, purityText: card.querySelector('.purity-val') });
+                const traceLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({color: 0x38bdf8, transparent: true, opacity: 0.7}));
+                scene.add(traceLine);
+
+
+                const yAxis = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0), 2.0, 0x29ba72, 0.1, 0.05);
+                scene.add(yAxis);
+
+                const zAxis = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0), 2.0, 0x6c21b8, 0.1, 0.05);
+                scene.add(zAxis);
+
+                const xAxis = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1), 2.0, 0xca67db, 0.1, 0.05);
+                scene.add(xAxis);
+
+                const labelY = createTextSprite("|+>", "#a6bfb3");
+                labelY.position.set(1.4, 0, 0);
+                scene.add(labelY);
+
+                const labelY2 = createTextSprite("|->", "#a6bfb3");
+                labelY2.position.set(-1.4, 0, 0);
+                scene.add(labelY2);
+                
+
+                const labelZ = createTextSprite("|0>", "#a6bfb3");
+                labelZ.position.set(0, 1.4, 0);
+                scene.add(labelZ);
+
+                const labelZ2 = createTextSprite("|1>", "#a6bfb3");
+                labelZ2.position.set(0, -1.4, 0);
+                scene.add(labelZ2);
+                
+
+                const labelX = createTextSprite("|-i>", "#a6bfb3");
+                labelX.position.set(0, 0, 1.4);
+                scene.add(labelX);                
+
+                const labelX2 = createTextSprite("|i>", "#a6bfb3");
+                labelX2.position.set(0, 0, -1.4);
+                scene.add(labelX2);                
+                
+                polytopeViews.push({ scene, camera, renderer, viewContainer, statePoint, traceLine, purityText: card.querySelector('.purity-val'), controls });
             }
         }
+      
 
         function initHintonLabels() {
             const top = document.getElementById('hinton-top-labels');
@@ -513,6 +600,7 @@
             updateCircuitView();
             updateMatrixDisplay(lastMatrix, lastGateInfo);
             updateVectorDisplay();
+            updatePolytopeView();
             updateHintonView();
             updateInterpretation(lastGateInfo);
             const list = document.getElementById('probabilities-list');
@@ -587,6 +675,28 @@
             }
         }
 
+        function updatePolytopeView() {
+            polytopeViews.forEach((view, q) => {
+                let p0 = 0, p1 = 0, rho01 = new Complex(0,0);
+                const mask = 1 << (3-q);
+                stateVector.forEach((amp, i) => { 
+                    const prob = amp.magSq();
+                    if (i & mask) p1 += prob; else {
+                        p0 += prob;
+                        const i1 = i | mask;
+                        rho01 = rho01.add(amp.mul(new Complex(stateVector[i1].re, -stateVector[i1].im)));
+                    }
+                });
+                const x = 2 * rho01.re, y = 2 * rho01.im, z = p0 - p1;
+                const r = Math.sqrt(x*x + y*y + z*z);
+                view.statePoint.position.set(x, z, y);
+                view.traceLine.geometry.setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(x, z, y)]);
+                view.purityText.innerText = `Purity: ${((1+r*r)/2*100).toFixed(0)}% | R: ${r.toFixed(2)}`;
+                //view.scene.rotation.y += 0.005;
+                view.renderer.render(view.scene, view.camera);
+            });
+        }
+
         function updateHintonView() {
             const hinton = document.getElementById('hinton-container');
             if (!hinton) return;
@@ -611,6 +721,14 @@
             animationTime += 0.04;
             if (activeTab === 'corkscrew') renderCorkscrew();
             if (activeTab === 'qsphere') renderQSphere();
+            if (activeTab === 'hinton') {
+                polytopeViews.forEach(view => {
+                    if(view.controls){
+                        view.controls.update();
+                        view.renderer.render(view.scene, view.camera);
+                    }
+                });
+            }
         }
 
         function init() {
@@ -664,14 +782,22 @@
             e.preventDefault();
             const type = e.dataTransfer.getData("text");
             let controls = [];
+            let angles = []
             if (type === 'CNOT' || type === 'CZ') { 
                 const c = prompt(`Control for ${type} (0-3):`); 
                 if (c === null || isNaN(parseInt(c)) || parseInt(c) === q) return; 
                 controls = [parseInt(c)]; 
             } else if (type === 'MCZ') {
                 controls = Array.from({length: QUBITS}, (_, i) => i).filter(i => i !== q);
+            } else if (type == 'U'){
+                const c = prompt(`Theta, Phi, Lambda:`);
+                angles = c.split(/\s*,\s*/).map(item => {
+                    const expression = item.toLowerCase().replace(/pi/g, Math.PI);
+  
+                    return Function(`return (${expression})`)();
+                });
             }
-            circuit.push({ type, target: q, controls });
+            circuit.push({ type, target: q, controls, angles });
             currentStep = circuit.length; runSimulation();
         }
 
