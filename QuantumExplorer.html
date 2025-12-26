@@ -98,6 +98,7 @@
 
                 <section class="bg-slate-800 p-3 rounded-xl border border-slate-700">
                     <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Pre-built Operators</h2>
+                    <button onclick="addBellState()" class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">Bell State</button>
                     <button onclick="addGroverDiffusion()" class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">Grover Diffusion</button>
                 </section>
                 
@@ -807,6 +808,16 @@
             const mczGate = {type: 'MCZ', target: QUBITS - 1, controls: Array.from({length: QUBITS - 1}, (_, i) => i)};
             
             circuit.push(...hGates, ...xGates, mczGate, ...xGates, ...hGates);
+            currentStep = circuit.length;
+            runSimulation();
+        }
+
+        function addBellState() {
+            const hGate = { type: 'H', target: 0, controls: [], angles: [] };
+            const cnotGate = { type: 'CNOT', target: 1, controls: [0], angles: [] };
+    
+            circuit.push(hGate, cnotGate);
+    
             currentStep = circuit.length;
             runSimulation();
         }
