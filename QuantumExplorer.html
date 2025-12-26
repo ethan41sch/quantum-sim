@@ -30,9 +30,9 @@
         .bracket-left { border-left: 3px solid #94a3b8; border-top: 3px solid #94a3b8; border-bottom: 3px solid #94a3b8; width: 10px; margin-right: 4px; border-radius: 4px 0 0 4px; }
         .bracket-right { border-right: 3px solid #94a3b8; border-top: 3px solid #94a3b8; border-bottom: 3px solid #94a3b8; width: 10px; margin-left: 4px; border-radius: 0 4px 4px 0; }
         
-        .matrix-scroll-wrapper { width: 100%; overflow: hidden; border: 1px solid #1e293b; border-radius: 4px; }
+        .matrix-scroll-wrapper { width: 100%; overflow: visible; border: 1px solid #1e293b; border-radius: 4px; }
         .matrix-grid { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); background: #020617; width: 100%; }
-        .matrix-cell { font-size: 8px; padding: 4px 1px; text-align: center; border: 0.5px solid #1e293b; font-family: monospace; white-space: nowrap; overflow: hidden; }
+        .matrix-cell { height: 26px; font-size: 8px; padding: 4px 1px; text-align: center; border: 0.5px solid #1e293b; font-family: monospace; display: flex; align-items: center; justify-content: center; }
         
         .tab-btn { border-bottom: 2px solid transparent; opacity: 0.6; }
         .tab-btn.active { border-color: #38bdf8; color: #38bdf8; opacity: 1; }
@@ -51,8 +51,8 @@
                     <button onclick="switchTab('corkscrew')" id="tab-corkscrew" class="tab-btn px-2 py-1 transition">3D Waves</button>
                     <button onclick="switchTab('qsphere')" id="tab-qsphere" class="tab-btn px-2 py-1 transition">Q-Sphere</button>
                     <button onclick="switchTab('hinton')" id="tab-hinton" class="tab-btn px-2 py-1 transition">Hinton & Polytopes</button>
-                    <button onclick="switchTab('matrix')" id="tab-matrix" class="tab-btn px-2 py-1 transition">Matrices</button>
                     <button onclick="switchTab('entanglement')" id="tab-entanglement" class="tab-btn px-2 py-1 transition">Entanglement</button>
+                    <button onclick="switchTab('matrix')" id="tab-matrix" class="tab-btn px-2 py-1 transition">Matrices</button>
                 </nav>
             </div>
             
@@ -143,30 +143,38 @@
                         <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Bipartite Entanglement Graph</h3>
                         <div id="three-entanglement-container" class="w-full h-[500px] bg-slate-950 rounded-xl"></div>
                         <p class="text-[10px] text-slate-500 mt-2 italic">Edges represent mutual information/concurrence between qubits.</p>
+                        <div class="absolute top-4 right-4 bg-slate-900/80 p-3 rounded border border-slate-700 z-30 text-[10px]">
+                          <label class="text-sky-400 font-bold block mb-2 uppercase">Metric Type</label>
+                          <select id="metric-selector" onchange="updateEntanglementGraph()" class="bg-slate-800 text-white rounded px-2 py-1 outline-none border border-slate-600">
+                            <option value="purity">Purity Difference</option>
+                            <option value="negativity">Negativity (PPT)</option>
+                            <option value="geometric">Geometric Measure</option>
+                          </select>
+                        </div>
+                        
                       </div>
                     </div>
-                    <div id="view-matrix" class="view-panel hidden space-y-6">
-                        <div class="flex flex-wrap gap-8">
-                            <div class="flex-1 min-w-[200px]">
-                                <h3 class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">State Vector |ψ⟩</h3>
-                                <div class="bracket-container p-3 bg-slate-950 rounded-lg w-full">
-                                    <div class="bracket-left"></div>
-                                    <div id="vector-display" class="grid grid-cols-1 gap-x-4 w-full px-2"></div>
-                                    <div class="bracket-right"></div>
-                                </div>
-                            </div>
-                            <div class="flex-[3] min-w-[400px]">
-                                <h3 id="matrix-title" class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Gate Matrix</h3>
-                                <div class="bracket-container bg-slate-950 p-1 rounded-lg border border-slate-800 w-full">
-                                    <div class="bracket-left"></div>
-                                    <div class="matrix-scroll-wrapper">
-                                        <div id="matrix-display" class="matrix-grid"></div>
-                                    </div>
-                                    <div class="bracket-right"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
+<div id="view-matrix" class="view-panel hidden space-y-6">
+    <div class="flex flex-row items-start gap-4"> <div class="flex-1 min-w-[150px]">
+            <h3 class="text-xs font-bold text-slate-400 mb-2 uppercase">|ψ⟩</h3>
+            <div class="bracket-container bg-slate-950 rounded-lg"> <div class="bracket-left"></div>
+                <div id="vector-display" class="w-full"></div>
+                <div class="bracket-right"></div>
+            </div>
+        </div>
+        <div class="flex-[4]">
+            <h3 id="matrix-title" class="text-xs font-bold text-slate-400 mb-2 uppercase">Gate Matrix</h3>
+            <div class="bracket-container bg-slate-950 rounded-lg"> <div class="bracket-left"></div>
+                <div class="matrix-scroll-wrapper">
+                    <div id="matrix-display" class="matrix-grid"></div>
+                </div>
+                <div class="bracket-right"></div>
+            </div>
+        </div>
+    </div>
+</div>                    
+                    
                 </div>
             </div>
         </div>
@@ -352,7 +360,9 @@
             corkscrew.renderer.setSize(container.clientWidth, container.clientHeight);
             container.appendChild(corkscrew.renderer.domElement);
             corkscrew.controls = new THREE.OrbitControls(corkscrew.camera, corkscrew.renderer.domElement);
-            corkscrew.camera.position.set(12, 12, 18);
+            corkscrew.camera.position.set(-7.5, 0, 15);
+            corkscrew.controls.target.set(-7.5, 0, -10); 
+            corkscrew.controls.update();
 
             const grid = new THREE.GridHelper(40, 40, 0x334155, 0x1e293b);
             grid.position.y = -3;
@@ -645,6 +655,7 @@
             if (vectorDiv) {
                 vectorDiv.innerHTML = stateVector.map((amp, i) => {
                     const isNonZero = amp.magSq() > 1e-6;
+
                     return `
                         <div class="flex justify-between items-center h-[26px] border-b border-slate-900 px-2 ${isNonZero ? 'bg-sky-500/10' : ''}">
                             <span class="text-[8px] text-slate-500 font-mono">|${i.toString(2).padStart(4, '0')}⟩</span>
@@ -652,7 +663,7 @@
                                 ${amp.toString() === "0" ? "0" : amp.toString()}
                             </span>
                         </div>
-                    `;
+                    `;                    
                 }).join('');
             }
         }
@@ -767,107 +778,140 @@
             entanglementView.scene.add(light, new THREE.AmbientLight(0x404040));
         }
 
-function calculateBipartiteEntanglement(q1, q2) {
-    let rdm = Array(4).fill(0).map(() => Array(4).fill(new Complex(0, 0)));
-    const mask1 = 1 << (QUBITS - 1 - q1);
-    const mask2 = 1 << (QUBITS - 1 - q2);
+        function getNegativity(rdm) {
+            let pt = [
+                [rdm[0][0], rdm[0][1], rdm[2][0], rdm[2][1]],
+                [rdm[1][0], rdm[1][1], rdm[3][0], rdm[3][1]],
+                [rdm[0][2], rdm[0][3], rdm[2][2], rdm[2][3]],
+                [rdm[1][2], rdm[1][3], rdm[3][2], rdm[3][3]]
+            ];
 
-    // 1. Build the 4x4 Reduced Density Matrix for the pair
-    for (let i = 0; i < STATES; i++) {
-        for (let j = 0; j < STATES; j++) {
-            let match = true;
-            for (let b = 0; b < QUBITS; b++) {
-                if (b !== q1 && b !== q2) {
-                    if (((i >> (QUBITS - 1 - b)) & 1) !== ((j >> (QUBITS - 1 - b)) & 1)) {
-                        match = false;
-                        break;
-                    }
-                }
-            }
-            if (match) {
-                const row = (((i & mask1) ? 2 : 0) + ((i & mask2) ? 1 : 0));
-                const col = (((j & mask1) ? 2 : 0) + ((j & mask2) ? 1 : 0));
-                const contribution = stateVector[i].mul(new Complex(stateVector[j].re, -stateVector[j].im));
-                rdm[row][col] = rdm[row][col].add(contribution);
-            }
+            let det = (pt[0][0].re * pt[1][1].re) - (pt[0][1].re * pt[1][0].re);
+            return Math.max(0, -det) * 4; 
         }
-    }
 
-    // 2. Calculate the Entanglement of Formation / Concurrence
-    // For a pure state, this is simplified to: 2 * |ad - bc| 
-    // where a,b,c,d are the amplitudes of |00>, |01>, |10>, |11>
-    // Since our RDM might be mixed (if q1/q2 are entangled with q3), 
-    // we use the 'Purity of Subsystems' check:
-    
-    const getSingleRDM = (q, pairRDM) => {
-        // Trace out one qubit from the 4x4 pairRDM to get a 2x2
-        let single = [ [new Complex(0,0), new Complex(0,0)], [new Complex(0,0), new Complex(0,0)] ];
-        if (q === 0) { // Keep first qubit of pair
-            single[0][0] = pairRDM[0][0].add(pairRDM[1][1]);
-            single[0][1] = pairRDM[0][2].add(pairRDM[1][3]);
-            single[1][0] = pairRDM[2][0].add(pairRDM[3][1]);
-            single[1][1] = pairRDM[2][2].add(pairRDM[3][3]);
-        } else { // Keep second qubit of pair
-            single[0][0] = pairRDM[0][0].add(pairRDM[2][2]);
-            single[0][1] = pairRDM[0][1].add(pairRDM[2][3]);
-            single[1][0] = pairRDM[1][0].add(pairRDM[3][2]);
-            single[1][1] = pairRDM[1][1].add(pairRDM[3][3]);
-        }
-        return single;
-    };
+      function getGeometricMeasure(q1, q2) {
+          let maxEigenvalue = 0;
+          for(let i=0; i<4; i++) maxEigenvalue = Math.max(maxEigenvalue, rdm[i][i].re);
+          return Math.max(0, 1 - maxEigenvalue);
+      }      
 
-    const sRDM1 = getSingleRDM(0, rdm);
-    const purity1 = sRDM1[0][0].magSq() + sRDM1[0][1].magSq() + sRDM1[1][0].magSq() + sRDM1[1][1].magSq();
+      function calculateBipartiteEntanglement(q1, q2) {
+          const metric = document.getElementById('metric-selector')?.value || 'purity';                          
+          let rdm = Array(4).fill(0).map(() => Array(4).fill(new Complex(0, 0)));
+          const mask1 = 1 << (QUBITS - 1 - q1);
+          const mask2 = 1 << (QUBITS - 1 - q2);
 
-    // 3. The Core Metric: 
-    // Entanglement requires that the pair state is 'purer' than the individual qubits.
-    // In a pure H(0) state: Individual purity = 0.5, Pair purity = 0.5. Result = 0.
-    // In a Bell state: Individual purity = 0.5, Pair purity = 1.0. Result = 0.5.
-    
-    let pairPurity = 0;
-    for(let r=0; r<4; r++) for(let c=0; c<4; c++) pairPurity += rdm[r][c].magSq();
-
-    const entanglement = Math.max(0, pairPurity - purity1);
-    
-    // Threshold to prevent floating point 'ghost' lines
-    return entanglement > 0.01 ? entanglement * 2 : 0;
-}
-
-
-
-
-      function updateEntanglementGraph() {
-          if (!entanglementView.renderer) return;
-
-          entanglementView.edges.forEach(e => entanglementView.scene.remove(e));
-          entanglementView.edges = [];
-
-          for (let i = 0; i < QUBITS; i++) {
-              for (let j = i + 1; j < QUBITS; j++) {
-                  const strength = calculateBipartiteEntanglement(i, j);
-                  if (strength > 0.02) {
-                      const distance = entanglementView.nodes[i].position.distanceTo(entanglementView.nodes[j].position);
-                      const geometry = new THREE.CylinderGeometry(0.04 * strength, 0.04 * strength, distance, 8);
-                      const material = new THREE.MeshPhongMaterial({ 
-                          color: new THREE.Color().setHSL(0.5, 1, 0.4 + (strength * 0.4)),
-                          transparent: true,
-                          opacity: 0.3 + (strength * 0.7),
-                          emissive: 0x38bdf8,
-                          emissiveIntensity: strength
-                      });
-
-                      const edge = new THREE.Mesh(geometry, material);
-                      edge.position.copy(entanglementView.nodes[i].position).lerp(entanglementView.nodes[j].position, 0.5);
-                      edge.lookAt(entanglementView.nodes[j].position);
-                      edge.rotateX(Math.PI / 2);
-                
-                      entanglementView.scene.add(edge);
-                      entanglementView.edges.push(edge);
+          for (let i = 0; i < STATES; i++) {
+              for (let j = 0; j < STATES; j++) {
+                  let match = true;
+                  for (let b = 0; b < QUBITS; b++) {
+                      if (b !== q1 && b !== q2) {
+                          if (((i >> (QUBITS - 1 - b)) & 1) !== ((j >> (QUBITS - 1 - b)) & 1)) {
+                              match = false;
+                              break;
+                          }
+                      }
+                  }
+                  if (match) {
+                      const row = (((i & mask1) ? 2 : 0) + ((i & mask2) ? 1 : 0));
+                      const col = (((j & mask1) ? 2 : 0) + ((j & mask2) ? 1 : 0));
+                      const contribution = stateVector[i].mul(new Complex(stateVector[j].re, -stateVector[j].im));
+                      rdm[row][col] = rdm[row][col].add(contribution);
                   }
               }
           }
-          entanglementView.renderer.render(entanglementView.scene, entanglementView.camera);
+
+          // 2. Calculate the Entanglement of Formation / Concurrence
+          // For a pure state, this is simplified to: 2 * |ad - bc| 
+          // where a,b,c,d are the amplitudes of |00>, |01>, |10>, |11>
+          // Since our RDM might be mixed (if q1/q2 are entangled with q3), 
+          // we use the 'Purity of Subsystems' check:
+          
+          const getSingleRDM = (q, pairRDM) => {
+              // Trace out one qubit from the 4x4 pairRDM to get a 2x2
+              let single = [ [new Complex(0,0), new Complex(0,0)], [new Complex(0,0), new Complex(0,0)] ];
+              if (q === 0) { // Keep first qubit of pair
+                  single[0][0] = pairRDM[0][0].add(pairRDM[1][1]);
+                  single[0][1] = pairRDM[0][2].add(pairRDM[1][3]);
+                  single[1][0] = pairRDM[2][0].add(pairRDM[3][1]);
+                  single[1][1] = pairRDM[2][2].add(pairRDM[3][3]);
+              } else { // Keep second qubit of pair
+                  single[0][0] = pairRDM[0][0].add(pairRDM[2][2]);
+                  single[0][1] = pairRDM[0][1].add(pairRDM[2][3]);
+                  single[1][0] = pairRDM[1][0].add(pairRDM[3][2]);
+                  single[1][1] = pairRDM[1][1].add(pairRDM[3][3]);
+              }
+              return single;
+          };
+
+
+          if (metric === 'negativity') {
+              return getNegativity(rdm);
+          } else if (metric === 'geometric') {
+              let maxEig = 0;
+              for(let i=0; i<4; i++) maxEig = Math.max(maxEig, rdm[i][i].re);
+              return (1 - maxEig) * 1.5;
+          } else {
+              const sRDM1 = getSingleRDM(0, rdm);
+              const purity1 = sRDM1[0][0].magSq() + sRDM1[0][1].magSq() + sRDM1[1][0].magSq() + sRDM1[1][1].magSq();
+              let pairPurity = 0;
+              for(let r=0; r<4; r++) for(let c=0; c<4; c++) pairPurity += rdm[r][c].magSq();
+              return Math.max(0, pairPurity - purity1) * 2;
+          }    
       }
+
+
+function updateEntanglementGraph() {
+    if (!entanglementView.renderer) return;
+
+    // Clear existing edges
+    entanglementView.edges.forEach(e => entanglementView.scene.remove(e));
+    entanglementView.edges = [];
+
+    const metric = document.getElementById('metric-selector')?.value || 'purity';
+
+    for (let i = 0; i < QUBITS; i++) {
+        for (let j = i + 1; j < QUBITS; j++) {
+            const strength = calculateBipartiteEntanglement(i, j);
+            
+            if (strength > 0.01) {
+                const v1 = entanglementView.nodes[i].position;
+                const v2 = entanglementView.nodes[j].position;
+                const distance = v1.distanceTo(v2);
+                
+                const geometry = new THREE.CylinderGeometry(0.04 * strength, 0.04 * strength, distance, 8);
+                
+                // COLOR LOGIC:
+                // Purity/Negativity = Cyan (0.5 HSL)
+                // Geometric = Purple/Magenta (0.8 HSL)
+                let hue = (metric === 'geometric') ? 0.8 : 0.5;
+                
+                const edgeMaterial = new THREE.MeshPhongMaterial({ 
+                    color: new THREE.Color().setHSL(hue, 1, 0.4 + (strength * 0.4)),
+                    transparent: true,
+                    opacity: 0.4 + (strength * 0.6),
+                    emissive: new THREE.Color().setHSL(hue, 1, 0.5),
+                    emissiveIntensity: strength * 2
+                });
+
+                const edge = new THREE.Mesh(geometry, edgeMaterial);
+                
+                // Positioning
+                edge.position.copy(v1).lerp(v2, 0.5);
+                edge.lookAt(v2);
+                edge.rotateX(Math.PI / 2);
+
+                entanglementView.scene.add(edge);
+                entanglementView.edges.push(edge);
+            }
+        }
+    }
+    
+    classifyEntanglementState();
+    entanglementView.renderer.render(entanglementView.scene, entanglementView.camera);
+}
+
 
         function animate() {
             requestAnimationFrame(animate);
