@@ -93,7 +93,9 @@
                         <button draggable="true" ondragstart="handleDragStart(event, 'CNOT')" class="gate-btn bg-rose-600 py-2 rounded text-[10px] font-bold shadow-lg">CNOT</button>
                         <button draggable="true" ondragstart="handleDragStart(event, 'CZ')" class="gate-btn bg-indigo-800 py-2 rounded text-[10px] font-bold shadow-lg">CZ</button>
                         <button draggable="true" ondragstart="handleDragStart(event, 'MCZ')" class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">MCZ (All Ctrl)</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'SWAP')" class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">SWAP</button>
                         <button draggable="true" ondragstart="handleDragStart(event, 'U')" class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">U(&theta;,&phi;,&lambda;)</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'CU')" class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">CU(&theta;,&phi;,&lambda;)</button>
                     </div>
                 </section>
 
@@ -101,6 +103,8 @@
                     <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Pre-built Operators</h2>
                     <button onclick="addBellState()" class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">Bell State</button>
                     <button onclick="addGroverDiffusion()" class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">Grover Diffusion</button>
+                    <button onclick="addQFT()" class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">QFT</button>
+                    <button onclick="addIQFT()" class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">invQFT</button>
                 </section>
                 
                 <section class="bg-slate-800 p-3 rounded-xl border border-slate-700 overflow-y-auto max-h-[300px]">
@@ -295,33 +299,58 @@
                         const phase = bitIsSet ? new Complex(Math.SQRT1_2, Math.SQRT1_2) : new Complex(1);
                         nextState[i] = nextState[i].add(amp.mul(phase));
                         if (lastMatrix) lastMatrix[i][i] = phase;
-                    }
-                    else if (gate.type === 'U') {
+
+                    } else if (gate.type === 'SWAP') {
+                        const target2 = gate.controls[0];
+                        const bitMask2 = 1 << (3 - target2);
+                        const bit1 = (i & bitMask) !== 0;
+                        const bit2 = (i & bitMask2) !== 0;
+
+                        if (bit1 !== bit2) {
+                            // Find the index where these two bits are swapped
+                            const targetIdx = i ^ bitMask ^ bitMask2;
+                            // Map the current amplitude to the new swapped index
+                            nextState[targetIdx] = amp;
+                            if (lastMatrix) lastMatrix[targetIdx][i] = new Complex(1);
+                        } else {
+                            // Bits are the same (00 or 11), state remains unchanged
+                            nextState[i] = amp;
+                            if (lastMatrix) lastMatrix[i][i] = new Complex(1);
+                        }
+
+                    } else if (gate.type === 'U' || gate.type === 'CU') {
                         const [theta, phi, lambda] = gate.angles;
                         const cosT = Math.cos(theta / 2);
                         const sinT = Math.sin(theta / 2);
 
-                        // Calculate the four matrix elements as Complex numbers
                         const u00 = new Complex(cosT);
                         const u01 = new Complex(-Math.cos(lambda) * sinT, -Math.sin(lambda) * sinT);
                         const u10 = new Complex(Math.cos(phi) * sinT, Math.sin(phi) * sinT);
                         const u11 = new Complex(Math.cos(phi + lambda) * cosT, Math.sin(phi + lambda) * cosT);
 
-                        const idx0 = i & ~bitMask;
-                        const idx1 = i | bitMask;
-
+                        // Only iterate if the target bit is NOT set to avoid double-processing
                         if (!bitIsSet) {
-                            const amp0 = stateVector[idx0];
-                            const amp1 = stateVector[idx1];
-
-                            nextState[idx0] = amp0.mul(u00).add(amp1.mul(u01));
-                            nextState[idx1] = amp0.mul(u10).add(amp1.mul(u11));
+                            const idx0 = i;
+                            const idx1 = i | bitMask;
                             
-                            if (lastMatrix) {
-                                lastMatrix[idx0][idx0] = u00;
-                                lastMatrix[idx0][idx1] = u01;
-                                lastMatrix[idx1][idx0] = u10;
-                                lastMatrix[idx1][idx1] = u11;
+                            // For CU, we check if controls are satisfied for this specific pair
+                            const ctrlSatisfied = gate.controls.every(c => (i & (1 << (3 - c))) !== 0);
+
+                            if (gate.type === 'U' || (gate.type === 'CU' && ctrlSatisfied)) {
+                                const amp0 = stateVector[idx0];
+                                const amp1 = stateVector[idx1];
+
+                                nextState[idx0] = amp0.mul(u00).add(amp1.mul(u01));
+                                nextState[idx1] = amp0.mul(u10).add(amp1.mul(u11));
+
+                                if (lastMatrix) {
+                                    lastMatrix[idx0][idx0] = u00; lastMatrix[idx0][idx1] = u01;
+                                    lastMatrix[idx1][idx0] = u10; lastMatrix[idx1][idx1] = u11;
+                                }
+                            } else {
+                                // If it's a CU and controls aren't met, just pass the values through
+                                nextState[idx0] = nextState[idx0].add(stateVector[idx0]);
+                                nextState[idx1] = nextState[idx1].add(stateVector[idx1]);
                             }
                         }
                     }
@@ -963,7 +992,17 @@ function updateEntanglementGraph() {
                     const gEl = document.createElement('div');
                     gEl.className = `w-7 h-7 flex items-center justify-center rounded cursor-pointer shrink-0 z-20 ${idx < currentStep ? '' : 'opacity-10'}`;
                     if (gate.target === q) {
-                        gEl.innerText = (gate.type === 'CZ' || gate.type === 'MCZ') ? 'Z' : gate.type;
+                        let t = gate.type;
+                        if(gate.type === 'SWAP'){
+                            t = 'x';
+                        } else if(gate.type === 'CU'){
+                            t = 'U';
+                        } else if(gate.type === 'CZ' || gate.type === 'MCZ'){
+                            t = 'Z';
+                        }
+                        
+                        gEl.innerText = t;
+                        
                         gEl.classList.add('bg-sky-600', 'text-white', 'font-bold', 'text-[9px]');
                         gEl.onclick = () => { 
                             circuit.splice(idx, 1); 
@@ -971,8 +1010,13 @@ function updateEntanglementGraph() {
                             runSimulation(); 
                         };
                     } else if (gate.controls.includes(q)) {
-                        gEl.innerHTML = '<div class="w-2.5 h-2.5 bg-white rounded-full"></div>';
-                    } else { gEl.innerHTML = '<div class="w-full h-px bg-white/10"></div>'; }
+                        if (gate.type === 'SWAP') {
+                            gEl.innerText = '×';
+                            gEl.classList.add('text-white', 'font-bold');
+                        } else {
+                            gEl.innerHTML = '<div class="w-2.5 h-2.5 bg-white rounded-full"></div>';
+                        }
+                    }
                     row.appendChild(gEl);
                 });
             }
@@ -984,13 +1028,15 @@ function updateEntanglementGraph() {
             const type = e.dataTransfer.getData("text");
             let controls = [];
             let angles = []
-            if (type === 'CNOT' || type === 'CZ') { 
-                const c = prompt(`Control for ${type} (0-3):`); 
+            if (type === 'CNOT' || type === 'CZ' || type === 'CU' || type === 'SWAP') {
+                const promptText = type === 'SWAP' ? `Second qubit for SWAP (0-3):` : `Control for ${type} (0-3):`;
+                const c = prompt(promptText);
                 if (c === null || isNaN(parseInt(c)) || parseInt(c) === q) return; 
                 controls = [parseInt(c)]; 
             } else if (type === 'MCZ') {
                 controls = Array.from({length: QUBITS}, (_, i) => i).filter(i => i !== q);
-            } else if (type == 'U'){
+            }
+            if (type === 'U' || type === 'CU'){
                 const c = prompt(`Theta, Phi, Lambda:`);
                 angles = c.split(/\s*,\s*/).map(item => {
                     const expression = item.toLowerCase().replace(/pi/g, Math.PI);
@@ -1021,6 +1067,62 @@ function updateEntanglementGraph() {
             currentStep = circuit.length;
             runSimulation();
         }
+
+        function addQFT() {
+          for (let i = 0; i < QUBITS; i++) {
+              circuit.push({ type: 'H', target: i, controls: [], angles: [] });
+
+              for (let j = i + 1; j < QUBITS; j++) {
+                  const distance = j - i;
+                  const angle = (2 * Math.PI) / Math.pow(2, distance + 1);
+                  
+                  circuit.push({ 
+                      type: 'CU', 
+                      target: i, 
+                      controls: [j], 
+                      angles: [0, 0, angle]
+                  });
+              }
+          }
+
+          for (let i = 0; i < Math.floor(QUBITS / 2); i++) {
+              const target1 = i;
+              const target2 = QUBITS - 1 - i;
+              circuit.push({ type: 'SWAP', target: target1, controls: [target2], angles: [] });
+          }
+
+          currentStep = circuit.length;
+          runSimulation();
+        }
+
+        function addIQFT() {
+          
+          for (let i = 0; i < Math.floor(QUBITS / 2); i++) {
+              const target1 = i;
+              const target2 = QUBITS - 1 - i;
+              circuit.push({ type: 'SWAP', target: target1, controls: [target2], angles: [] });
+          }
+
+          for (let i = QUBITS - 1; i >= 0; i--) {
+              
+              for (let j = QUBITS - 1; j > i; j--) {
+                  const distance = j - i;
+                  const angle = -(2 * Math.PI) / Math.pow(2, distance + 1);
+                  
+                  circuit.push({ 
+                      type: 'U', 
+                      target: i, 
+                      controls: [j], 
+                      angles: [0, 0, angle]
+                  });
+              }
+
+              circuit.push({ type: 'H', target: i, controls: [], angles: [] });
+          }
+
+          currentStep = circuit.length;
+          runSimulation();
+      }      
 
         function stepForward() { if(currentStep < circuit.length) { currentStep++; runSimulation(); } }
         function stepBack() { if(currentStep > 0) { currentStep--; runSimulation(); } }
