@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,105 +9,311 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .qubit-line { height: 2px; background: #334155; position: absolute; left: 0; right: 0; top: 50%; z-index: 0; pointer-events: none; }
-        .gate-btn { transition: all 0.2s; cursor: grab; }
-        .gate-row { transition: background-color 0.2s; border-radius: 0.5rem; min-height: 40px; }
-        .gate-row.drag-over { background-color: rgba(56, 189, 248, 0.2); outline: 2px dashed #38bdf8; }
-        .phase-disk { border: 1px solid #475569; border-radius: 50%; position: relative; background: #1e293b; display: flex; align-items: center; justify-content: center; }
-        .phase-needle { position: absolute; top: 50%; left: 50%; width: 50%; height: 2px; background: #38bdf8; transform-origin: left center; z-index: 10; }
-        .phase-fill { position: absolute; border-radius: 50%; background: rgba(56, 189, 248, 0.3); }
-        .active-gate { outline: 3px solid #38bdf8; outline-offset: 2px; box-shadow: 0 0 15px rgba(56, 189, 248, 0.5); }
-        
-        .hinton-wrapper { display: inline-grid; grid-template-areas: ". top" "left main"; gap: 4px; padding: 10px; background: #020617; border-radius: 8px; border: 1px solid #1e293b; }
-        .hinton-top-labels { grid-area: top; display: flex; }
-        .hinton-left-labels { grid-area: left; display: flex; flex-direction: column; }
-        .hinton-grid { grid-area: main; display: grid; grid-template-columns: repeat(var(--states), 18px); grid-template-rows: repeat(var(--states), 18px); gap: 1px; border: 1px solid #334155; }
-        .hinton-label { font-size: 7px; font-family: monospace; color: #64748b; display: flex; align-items: center; justify-content: center; }
-        .hinton-label.row { width: 30px; height: 18px; justify-content: flex-end; padding-right: 4px; }
-        .hinton-label.col { width: 18px; height: 20px; writing-mode: vertical-rl; transform: rotate(180deg); }
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
 
-        .bracket-container { display: flex; align-items: stretch; position: relative; }
-        .bracket-left { border-left: 3px solid #94a3b8; border-top: 3px solid #94a3b8; border-bottom: 3px solid #94a3b8; width: 10px; margin-right: 4px; border-radius: 4px 0 0 4px; }
-        .bracket-right { border-right: 3px solid #94a3b8; border-top: 3px solid #94a3b8; border-bottom: 3px solid #94a3b8; width: 10px; margin-left: 4px; border-radius: 0 4px 4px 0; }
-        
-        .matrix-scroll-wrapper { width: 100%; overflow: visible; border: 1px solid #1e293b; border-radius: 4px; }
-        .matrix-grid { display: grid; grid-template-columns: repeat(var(--states), minmax(0, 1fr)); background: #020617; width: 100%; }
-        .matrix-cell { height: 26px; font-size: 8px; padding: 4px 1px; text-align: center; border: 0.5px solid #1e293b; font-family: monospace; display: flex; align-items: center; justify-content: center; }
-        
-        .tab-btn { border-bottom: 2px solid transparent; opacity: 0.6; }
-        .tab-btn.active { border-color: #38bdf8; color: #38bdf8; opacity: 1; }
+        .qubit-line {
+            height: 2px;
+            background: #334155;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            z-index: 0;
+            pointer-events: none;
+        }
 
-        .insight-card { border-left: 4px solid #38bdf8; animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .gate-btn {
+            transition: all 0.2s;
+            cursor: grab;
+        }
+
+        .gate-row {
+            transition: background-color 0.2s;
+            border-radius: 0.5rem;
+            min-height: 40px;
+        }
+
+        .gate-row.drag-over {
+            background-color: rgba(56, 189, 248, 0.2);
+            outline: 2px dashed #38bdf8;
+        }
+
+        .phase-disk {
+            border: 1px solid #475569;
+            border-radius: 50%;
+            position: relative;
+            background: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .phase-needle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50%;
+            height: 2px;
+            background: #38bdf8;
+            transform-origin: left center;
+            z-index: 10;
+        }
+
+        .phase-fill {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(56, 189, 248, 0.3);
+        }
+
+        .active-gate {
+            outline: 3px solid #38bdf8;
+            outline-offset: 2px;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+        }
+
+        .hinton-wrapper {
+            display: inline-grid;
+            grid-template-areas: ". top" "left main";
+            gap: 4px;
+            padding: 10px;
+            background: #020617;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+        }
+
+        .hinton-top-labels {
+            grid-area: top;
+            display: flex;
+        }
+
+        .hinton-left-labels {
+            grid-area: left;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hinton-grid {
+            grid-area: main;
+            display: grid;
+            grid-template-columns: repeat(var(--states), 18px);
+            grid-template-rows: repeat(var(--states), 18px);
+            gap: 1px;
+            border: 1px solid #334155;
+        }
+
+        .hinton-label {
+            font-size: 7px;
+            font-family: monospace;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hinton-label.row {
+            width: 30px;
+            height: 18px;
+            justify-content: flex-end;
+            padding-right: 4px;
+        }
+
+        .hinton-label.col {
+            width: 18px;
+            height: 20px;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+        }
+
+        .bracket-container {
+            display: flex;
+            align-items: stretch;
+            position: relative;
+        }
+
+        .bracket-left {
+            border-left: 3px solid #94a3b8;
+            border-top: 3px solid #94a3b8;
+            border-bottom: 3px solid #94a3b8;
+            width: 10px;
+            margin-right: 4px;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .bracket-right {
+            border-right: 3px solid #94a3b8;
+            border-top: 3px solid #94a3b8;
+            border-bottom: 3px solid #94a3b8;
+            width: 10px;
+            margin-left: 4px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .matrix-scroll-wrapper {
+            width: 100%;
+            overflow: visible;
+            border: 1px solid #1e293b;
+            border-radius: 4px;
+        }
+
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(var(--states), minmax(0, 1fr));
+            background: #020617;
+            width: 100%;
+        }
+
+        .matrix-cell {
+            height: 26px;
+            font-size: 8px;
+            padding: 4px 1px;
+            text-align: center;
+            border: 0.5px solid #1e293b;
+            font-family: monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tab-btn {
+            border-bottom: 2px solid transparent;
+            opacity: 0.6;
+        }
+
+        .tab-btn.active {
+            border-color: #38bdf8;
+            color: #38bdf8;
+            opacity: 1;
+        }
+
+        .insight-card {
+            border-left: 4px solid #38bdf8;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
+
 <body class="p-2 sm:p-4">
     <div id="app" class="max-w-[1600px] mx-auto">
         <header class="mb-4 border-b border-slate-700 pb-2 flex flex-wrap justify-between items-center gap-4">
             <div>
                 <h1 class="text-xl font-bold text-sky-400">Quantum Multi-View Simulator</h1>
                 <nav class="flex gap-4 mt-1 text-xs">
-                    <button onclick="switchTab('circuit')" id="tab-circuit" class="tab-btn active px-2 py-1 transition">Phase Disks</button>
-                    <button onclick="switchTab('corkscrew')" id="tab-corkscrew" class="tab-btn px-2 py-1 transition">3D Waves</button>
-                    <button onclick="switchTab('qsphere')" id="tab-qsphere" class="tab-btn px-2 py-1 transition">Q-Sphere</button>
-                    <button onclick="switchTab('hinton')" id="tab-hinton" class="tab-btn px-2 py-1 transition">Hinton & Polytopes</button>
-                    <button onclick="switchTab('entanglement')" id="tab-entanglement" class="tab-btn px-2 py-1 transition">Entanglement</button>
-                    <button onclick="switchTab('matrix')" id="tab-matrix" class="tab-btn px-2 py-1 transition">Matrices</button>
+                    <button onclick="switchTab('circuit')" id="tab-circuit"
+                        class="tab-btn active px-2 py-1 transition">Phase Disks</button>
+                    <button onclick="switchTab('corkscrew')" id="tab-corkscrew" class="tab-btn px-2 py-1 transition">3D
+                        Waves</button>
+                    <button onclick="switchTab('qsphere')" id="tab-qsphere"
+                        class="tab-btn px-2 py-1 transition">Q-Sphere</button>
+                    <button onclick="switchTab('hinton')" id="tab-hinton" class="tab-btn px-2 py-1 transition">Hinton &
+                        Polytopes</button>
+                    <button onclick="switchTab('entanglement')" id="tab-entanglement"
+                        class="tab-btn px-2 py-1 transition">Entanglement</button>
+                    <button onclick="switchTab('matrix')" id="tab-matrix"
+                        class="tab-btn px-2 py-1 transition">Matrices</button>
+                    <button onclick="switchTab('history')" id="tab-history"
+                        class="tab-btn px-2 py-1 transition">History</button>
                 </nav>
             </div>
-            
+
             <div class="flex gap-2 bg-slate-800 p-1.5 rounded-lg border border-slate-700">
-                <button onclick="stepBack()" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-[10px] transition">Back</button>
-                <button onclick="resetStep()" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-[10px] transition">Start</button>
-                <button onclick="stepForward()" class="px-3 py-1 bg-sky-600 hover:bg-sky-500 rounded text-[10px] transition font-bold text-white">Forward</button>
-                <button onclick="resetCircuit()" class="px-3 py-1 bg-rose-900/40 border border-rose-800 rounded text-[10px] transition text-rose-200 ml-2">Clear</button>
+                <button onclick="stepBack()"
+                    class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-[10px] transition">Back</button>
+                <button onclick="resetStep()"
+                    class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-[10px] transition">Start</button>
+                <button onclick="stepForward()"
+                    class="px-3 py-1 bg-sky-600 hover:bg-sky-500 rounded text-[10px] transition font-bold text-white">Forward</button>
+                <button onclick="resetCircuit()"
+                    class="px-3 py-1 bg-rose-900/40 border border-rose-800 rounded text-[10px] transition text-rose-200 ml-2">Clear</button>
             </div>
         </header>
 
         <div class="grid grid-cols-12 gap-4">
             <div class="col-span-12 lg:col-span-3 space-y-3">
-                <section class="insight-card bg-slate-800/90 p-4 rounded-r-lg border border-slate-700 shadow-2xl overflow-hidden">
+                <section
+                    class="insight-card bg-slate-800/90 p-4 rounded-r-lg border border-slate-700 shadow-2xl overflow-hidden">
                     <div class="flex items-center justify-between mb-3">
-                        <h2 class="text-[11px] font-bold text-sky-400 uppercase tracking-widest flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        <h2
+                            class="text-[11px] font-bold text-sky-400 uppercase tracking-widest flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                    clip-rule="evenodd" />
                             </svg>
                             Live Interpretation
                         </h2>
-                        <span id="insight-gate-tag" class="text-[9px] bg-sky-900/50 text-sky-200 px-2 py-0.5 rounded border border-sky-700">NONE</span>
+                        <span id="insight-gate-tag"
+                            class="text-[9px] bg-sky-900/50 text-sky-200 px-2 py-0.5 rounded border border-sky-700">NONE</span>
                     </div>
                     <div id="insight-content" class="text-xs leading-relaxed text-slate-200 space-y-3">
-                        <p class="text-slate-400 italic">Drag a gate onto a qubit line to see how it transforms the quantum state.</p>
+                        <p class="text-slate-400 italic">Drag a gate onto a qubit line to see how it transforms the
+                            quantum state.</p>
                     </div>
                 </section>
 
                 <section class="bg-slate-800 p-3 rounded-xl border border-slate-700">
                     <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Gates</h2>
                     <div class="grid grid-cols-2 gap-1.5">
-                        <button draggable="true" ondragstart="handleDragStart(event, 'H')" class="gate-btn bg-indigo-600 py-2 rounded text-[10px] font-bold shadow-lg">H</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'X')" class="gate-btn bg-emerald-600 py-2 rounded text-[10px] font-bold shadow-lg">X</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'Y')" class="gate-btn bg-emerald-700 py-2 rounded text-[10px] font-bold shadow-lg">Y</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'Z')" class="gate-btn bg-emerald-800 py-2 rounded text-[10px] font-bold shadow-lg">Z</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'S')" class="gate-btn bg-amber-600 py-2 rounded text-[10px] font-bold shadow-lg">S</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'T')" class="gate-btn bg-amber-700 py-2 rounded text-[10px] font-bold shadow-lg">T</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'CNOT')" class="gate-btn bg-rose-600 py-2 rounded text-[10px] font-bold shadow-lg">CNOT</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'CZ')" class="gate-btn bg-indigo-800 py-2 rounded text-[10px] font-bold shadow-lg">CZ</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'MCZ')" class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">MCZ (All Ctrl)</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'SWAP')" class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">SWAP</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'U')" class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">U(&theta;,&phi;,&lambda;)</button>
-                        <button draggable="true" ondragstart="handleDragStart(event, 'CU')" class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">CU(&theta;,&phi;,&lambda;)</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'H')"
+                            class="gate-btn bg-indigo-600 py-2 rounded text-[10px] font-bold shadow-lg">H</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'X')"
+                            class="gate-btn bg-emerald-600 py-2 rounded text-[10px] font-bold shadow-lg">X</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'Y')"
+                            class="gate-btn bg-emerald-700 py-2 rounded text-[10px] font-bold shadow-lg">Y</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'Z')"
+                            class="gate-btn bg-emerald-800 py-2 rounded text-[10px] font-bold shadow-lg">Z</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'S')"
+                            class="gate-btn bg-amber-600 py-2 rounded text-[10px] font-bold shadow-lg">S</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'T')"
+                            class="gate-btn bg-amber-700 py-2 rounded text-[10px] font-bold shadow-lg">T</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'CNOT')"
+                            class="gate-btn bg-rose-600 py-2 rounded text-[10px] font-bold shadow-lg">CNOT</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'CZ')"
+                            class="gate-btn bg-indigo-800 py-2 rounded text-[10px] font-bold shadow-lg">CZ</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'MCZ')"
+                            class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">MCZ (All
+                            Ctrl)</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'SWAP')"
+                            class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">SWAP</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'U')"
+                            class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">U(&theta;,&phi;,&lambda;)</button>
+                        <button draggable="true" ondragstart="handleDragStart(event, 'CU')"
+                            class="gate-btn bg-purple-700 py-2 rounded text-[10px] font-bold shadow-lg">CU(&theta;,&phi;,&lambda;)</button>
                     </div>
                 </section>
 
                 <section class="bg-slate-800 p-3 rounded-xl border border-slate-700">
-                    <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Pre-built Operators</h2>
-                    <button onclick="addBellState()" class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">Bell State</button>
-                    <button onclick="addGroverDiffusion()" class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">Grover Diffusion</button>
-                    <button onclick="addQFT()" class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">QFT</button>
-                    <button onclick="addIQFT()" class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">invQFT</button>
+                    <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Pre-built Operators
+                    </h2>
+                    <button onclick="addBellState()"
+                        class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">Bell
+                        State</button>
+                    <button onclick="addGroverDiffusion()"
+                        class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">Grover
+                        Diffusion</button>
+                    <button onclick="addQFT()"
+                        class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">QFT</button>
+                    <button onclick="addIQFT()"
+                        class="w-full bg-sky-900/50 hover:bg-sky-800 border border-sky-700 py-2 rounded text-[10px] font-bold text-sky-200 transition">invQFT</button>
                 </section>
-                
+
                 <section class="bg-slate-800 p-3 rounded-xl border border-slate-700 overflow-y-auto max-h-[300px]">
                     <h2 class="text-[10px] font-bold text-slate-400 uppercase mb-2">Probabilities</h2>
                     <div id="probabilities-list" class="space-y-1 text-[10px] font-mono"></div>
@@ -129,7 +336,8 @@
                     <div id="view-hinton" class="view-panel hidden">
                         <div class="flex flex-col xl:flex-row gap-8 items-start justify-center">
                             <div class="flex-shrink-0">
-                                <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Density Matrix</h3>
+                                <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Density Matrix
+                                </h3>
                                 <div class="hinton-wrapper mx-auto">
                                     <div id="hinton-top-labels" class="hinton-top-labels"></div>
                                     <div id="hinton-left-labels" class="hinton-left-labels"></div>
@@ -137,48 +345,62 @@
                                 </div>
                             </div>
                             <div class="flex-grow w-full max-w-[500px]">
-                                <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Local Qubit States</h3>
+                                <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Local Qubit
+                                    States</h3>
                                 <div id="polytope-container" class="grid grid-cols-2 gap-4"></div>
                             </div>
                         </div>
                     </div>
                     <div id="view-entanglement" class="view-panel hidden relative">
-                      <div class="flex flex-col items-center">
-                        <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Bipartite Entanglement Graph</h3>
-                        <div id="three-entanglement-container" class="w-full h-[500px] bg-slate-950 rounded-xl"></div>
-                        <p class="text-[10px] text-slate-500 mt-2 italic">Edges represent mutual information/concurrence between qubits.</p>
-                        <div class="absolute top-4 right-4 bg-slate-900/80 p-3 rounded border border-slate-700 z-30 text-[10px]">
-                          <label class="text-sky-400 font-bold block mb-2 uppercase">Metric Type</label>
-                          <select id="metric-selector" onchange="updateEntanglementGraph()" class="bg-slate-800 text-white rounded px-2 py-1 outline-none border border-slate-600">
-                            <option value="purity">Purity Difference</option>
-                            <option value="negativity">Negativity (PPT)</option>
-                            <option value="geometric">Geometric Measure</option>
-                          </select>
+                        <div class="flex flex-col items-center">
+                            <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Bipartite
+                                Entanglement Graph</h3>
+                            <div id="three-entanglement-container" class="w-full h-[500px] bg-slate-950 rounded-xl">
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-2 italic">Edges represent mutual
+                                information/concurrence between qubits.</p>
+                            <div
+                                class="absolute top-4 right-4 bg-slate-900/80 p-3 rounded border border-slate-700 z-30 text-[10px]">
+                                <label class="text-sky-400 font-bold block mb-2 uppercase">Metric Type</label>
+                                <select id="metric-selector" onchange="updateEntanglementGraph()"
+                                    class="bg-slate-800 text-white rounded px-2 py-1 outline-none border border-slate-600">
+                                    <option value="purity">Purity Difference</option>
+                                    <option value="negativity">Negativity (PPT)</option>
+                                    <option value="geometric">Geometric Measure</option>
+                                </select>
+                            </div>
+
                         </div>
-                        
-                      </div>
                     </div>
 
-<div id="view-matrix" class="view-panel hidden space-y-6">
-    <div class="flex flex-row items-start gap-4"> <div class="flex-1 min-w-[150px]">
-            <h3 class="text-xs font-bold text-slate-400 mb-2 uppercase">|ψ⟩</h3>
-            <div class="bracket-container bg-slate-950 rounded-lg"> <div class="bracket-left"></div>
-                <div id="vector-display" class="w-full"></div>
-                <div class="bracket-right"></div>
-            </div>
-        </div>
-        <div class="flex-[4]">
-            <h3 id="matrix-title" class="text-xs font-bold text-slate-400 mb-2 uppercase">Gate Matrix</h3>
-            <div class="bracket-container bg-slate-950 rounded-lg"> <div class="bracket-left"></div>
-                <div class="matrix-scroll-wrapper">
-                    <div id="matrix-display" class="matrix-grid"></div>
-                </div>
-                <div class="bracket-right"></div>
-            </div>
-        </div>
-    </div>
-</div>                    
-                    
+                    <div id="view-matrix" class="view-panel hidden space-y-6">
+                        <div class="flex flex-row items-start gap-4">
+                            <div class="flex-1 min-w-[150px]">
+                                <h3 class="text-xs font-bold text-slate-400 mb-2 uppercase">|ψ⟩</h3>
+                                <div class="bracket-container bg-slate-950 rounded-lg">
+                                    <div class="bracket-left"></div>
+                                    <div id="vector-display" class="w-full"></div>
+                                    <div class="bracket-right"></div>
+                                </div>
+                            </div>
+                            <div class="flex-[4]">
+                                <h3 id="matrix-title" class="text-xs font-bold text-slate-400 mb-2 uppercase">Gate
+                                    Matrix</h3>
+                                <div class="bracket-container bg-slate-950 rounded-lg">
+                                    <div class="bracket-left"></div>
+                                    <div class="matrix-scroll-wrapper">
+                                        <div id="matrix-display" class="matrix-grid"></div>
+                                    </div>
+                                    <div class="bracket-right"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="view-history" class="view-panel hidden">
+                        <!-- History content injected via JS -->
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -203,7 +425,7 @@
             magSq() { return this.re * this.re + this.im * this.im; }
             mag() { return Math.sqrt(this.magSq()); }
             phase() { return Math.atan2(this.im, this.re); }
-            toString() { 
+            toString() {
                 if (this.magSq() < 1e-6) return "0";
                 const r = this.re.toFixed(2);
                 const i = Math.abs(this.im).toFixed(2);
@@ -217,10 +439,9 @@
         const STATES = 32;
         let circuit = [];
         let currentStep = 0;
-        let stateVector = Array(STATES).fill(0).map(() => new Complex(0, 0));
-        let activeTab = 'circuit';
         let animationTime = 0;
-
+        let activeTab = 'circuit';
+        let stateHistory = [];
         let corkscrew = { scene: null, camera: null, renderer: null, controls: null, lines: [], labels: [], needles: [], compositeLine: null };
         let qsphere = { scene: null, camera: null, renderer: null, controls: null, nodes: [], labels: [] };
         let entanglementView = { scene: null, camera: null, renderer: null, controls: null, nodes: [], edges: [] };
@@ -237,6 +458,7 @@
                 if (tabId === 'qsphere') initQSphere();
                 if (tabId === 'hinton') { initPolytopeView(); initHintonLabels(); }
                 if (tabId === 'entanglement') initEntanglementView();
+                if (tabId === 'history') updateHistoryView();
                 runSimulation();
             }, 50);
         }
@@ -244,6 +466,15 @@
         function runSimulation() {
             stateVector = Array(STATES).fill(0).map(() => new Complex(0, 0));
             stateVector[0] = new Complex(1, 0);
+
+            // Reset history
+            stateHistory = [];
+            // Push initial state
+            stateHistory.push({
+                state: [...stateVector], // copy
+                gate: null
+            });
+
             const INV_SQRT2 = 1 / Math.sqrt(2);
             let lastMatrix = null;
             let lastGateInfo = "None";
@@ -255,18 +486,18 @@
                 if (!gate) continue;
 
                 const nextState = Array(STATES).fill(0).map(() => new Complex(0, 0));
-                const bitMask = 1 << ((QUBITS-1) - gate.target);
-                
+                const bitMask = 1 << ((QUBITS - 1) - gate.target);
+
                 if (s === currentStep - 1) {
-                    lastMatrix = Array(STATES).fill(0).map(() => Array(STATES).fill(new Complex(0,0)));
+                    lastMatrix = Array(STATES).fill(0).map(() => Array(STATES).fill(new Complex(0, 0)));
                     lastGateInfo = `${gate.type} on Q${gate.target}`;
                 }
 
                 for (let i = 0; i < STATES; i++) {
                     const amp = stateVector[i];
                     const bitIsSet = (i & bitMask) !== 0;
-                    const ctrlSatisfied = gate.controls.every(c => (i & (1 << ((QUBITS-1) - c))) !== 0);
-                    
+                    const ctrlSatisfied = gate.controls.every(c => (i & (1 << ((QUBITS - 1) - c))) !== 0);
+
                     if (gate.type === 'H') {
                         const idx0 = i & ~bitMask; const idx1 = i | bitMask;
                         if (!bitIsSet) {
@@ -302,18 +533,15 @@
 
                     } else if (gate.type === 'SWAP') {
                         const target2 = gate.controls[0];
-                        const bitMask2 = 1 << ((QUBITS-1) - target2);
+                        const bitMask2 = 1 << ((QUBITS - 1) - target2);
                         const bit1 = (i & bitMask) !== 0;
                         const bit2 = (i & bitMask2) !== 0;
 
                         if (bit1 !== bit2) {
-                            // Find the index where these two bits are swapped
                             const targetIdx = i ^ bitMask ^ bitMask2;
-                            // Map the current amplitude to the new swapped index
                             nextState[targetIdx] = amp;
                             if (lastMatrix) lastMatrix[targetIdx][i] = new Complex(1);
                         } else {
-                            // Bits are the same (00 or 11), state remains unchanged
                             nextState[i] = amp;
                             if (lastMatrix) lastMatrix[i][i] = new Complex(1);
                         }
@@ -328,13 +556,10 @@
                         const u10 = new Complex(Math.cos(phi) * sinT, Math.sin(phi) * sinT);
                         const u11 = new Complex(Math.cos(phi + lambda) * cosT, Math.sin(phi + lambda) * cosT);
 
-                        // Only iterate if the target bit is NOT set to avoid double-processing
                         if (!bitIsSet) {
                             const idx0 = i;
                             const idx1 = i | bitMask;
-                            
-                            // For CU, we check if controls are satisfied for this specific pair
-                            const ctrlSatisfied = gate.controls.every(c => (i & (1 << ((QUBITS-1) - c))) !== 0);
+                            const ctrlSatisfied = gate.controls.every(c => (i & (1 << ((QUBITS - 1) - c))) !== 0);
 
                             if (gate.type === 'U' || (gate.type === 'CU' && ctrlSatisfied)) {
                                 const amp0 = stateVector[idx0];
@@ -348,7 +573,6 @@
                                     lastMatrix[idx1][idx0] = u10; lastMatrix[idx1][idx1] = u11;
                                 }
                             } else {
-                                // If it's a CU and controls aren't met, just pass the values through
                                 nextState[idx0] = nextState[idx0].add(stateVector[idx0]);
                                 nextState[idx1] = nextState[idx1].add(stateVector[idx1]);
                             }
@@ -356,21 +580,149 @@
                     }
                 }
                 stateVector = nextState;
+                // Capture state for history
+                stateHistory.push({
+                    state: [...stateVector],
+                    gate: gate
+                });
             }
             updateViews(lastMatrix, lastGateInfo);
         }
 
+        function updateViews(lastMatrix, lastGateInfo) {
+            updateCircuitView();
+            updateMatrixDisplay(lastMatrix, lastGateInfo);
+            updateVectorDisplay();
+            updatePolytopeView();
+            updateHintonView();
+            updateEntanglementGraph();
+            updateInterpretation(lastGateInfo);
+            if (activeTab === 'history') updateHistoryView();
+
+            const list = document.getElementById('probabilities-list');
+            if (list) list.innerHTML = stateVector.map((amp, i) => amp.magSq() > 0.001 ? `<div class="p-1 text-sky-400 font-bold border-b border-slate-800">|${i.toString(2).padStart(QUBITS, '0')}⟩ ${(amp.magSq() * 100).toFixed(1)}%</div>` : '').join('');
+        }
+
+        function updateHistoryView() {
+            const container = document.getElementById('view-history');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const scrollContainer = document.createElement('div');
+            scrollContainer.className = "flex flex-col gap-2 max-h-[500px] overflow-y-auto pr-2";
+            container.appendChild(scrollContainer);
+
+            // Iterate reversed: Latest first
+            for (let i = stateHistory.length - 1; i >= 0; i--) {
+                const entry = stateHistory[i];
+                const isCurrent = i === stateHistory.length - 1;
+
+                const row = document.createElement('div');
+                row.className = `flex items-center gap-4 p-3 rounded-lg border ${isCurrent ? 'bg-slate-800 border-sky-500' : 'bg-slate-900 border-slate-700'}`;
+
+                // Gate Info Column
+                const infoCol = document.createElement('div');
+                infoCol.className = "w-24 shrink-0 flex flex-col items-center justify-center";
+
+                if (entry.gate) {
+                    const badge = document.createElement('div');
+                    badge.className = "px-2 py-1 bg-indigo-600 rounded text-xs font-bold text-white mb-1";
+                    badge.innerText = entry.gate.type;
+                    infoCol.appendChild(badge);
+                    const sub = document.createElement('div');
+                    sub.className = "text-[9px] text-slate-400";
+                    sub.innerText = `Q${entry.gate.target}`;
+                    infoCol.appendChild(sub);
+
+                    // Controls info
+                    if (entry.gate.controls && entry.gate.controls.length) {
+                        const ctrls = document.createElement('div');
+                        ctrls.className = "text-[8px] text-slate-500";
+                        ctrls.innerText = `Ctrl: ${entry.gate.controls.join(',')}`;
+                        infoCol.appendChild(ctrls);
+                    }
+                } else {
+                    const txt = document.createElement('div');
+                    txt.className = "text-[10px] text-slate-500 uppercase tracking-wider font-bold";
+                    txt.innerText = "Initial State";
+                    infoCol.appendChild(txt);
+                }
+                row.appendChild(infoCol);
+
+                // Bar Chart
+                const chart = document.createElement('div');
+                chart.className = "flex-1 h-16 flex items-center justify-between gap-[1px] bg-slate-950/50 p-1 rounded relative";
+
+                // Center line
+                const centerLine = document.createElement('div');
+                centerLine.className = "absolute left-0 right-0 top-1/2 h-[1px] bg-slate-700 z-0";
+                chart.appendChild(centerLine);
+
+                entry.state.forEach((amp, idx) => {
+                    const mag = amp.mag(); // Height is magnitude
+                    const phase = amp.phase(); // range -PI to PI
+
+                    const barContainer = document.createElement('div');
+                    barContainer.className = "flex-1 h-full relative group"; // Relative for absolute positioning
+
+                    // Tooltip
+                    const tooltip = document.createElement('div');
+                    tooltip.className = "hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-black text-white text-[9px] p-1 rounded whitespace-nowrap z-50 pointer-events-none";
+                    tooltip.innerHTML = `|${idx.toString(2).padStart(QUBITS, '0')}⟩<br>Mag: ${mag.toFixed(2)}<br>Phase: ${(phase / Math.PI).toFixed(2)}π`;
+                    barContainer.appendChild(tooltip);
+
+                    if (mag > 0.01) {
+                        const bar = document.createElement('div');
+                        const hue = (phase / (2 * Math.PI) * 360) + 180;
+                        bar.style.backgroundColor = `hsl(${hue}, 80%, 60%)`;
+                        bar.style.position = "absolute";
+                        bar.style.left = "10%";
+                        bar.style.width = "80%";
+                        bar.style.height = (mag * 50) + "%"; // Max height 50% of container (from center to edge)
+
+                        const isDown = amp.re < -0.001 || (Math.abs(phase) > Math.PI * 2 / 3);
+
+                        if (isDown) {
+                            bar.style.top = "50%"; // Starts at center, grows down
+                            bar.style.transformOrigin = "top";
+                        } else {
+                            bar.style.bottom = "50%"; // Starts at center, grows up
+                            bar.style.transformOrigin = "bottom";
+                        }
+
+                        barContainer.appendChild(bar);
+
+                        // State Label
+                        const label = document.createElement('div');
+                        label.className = "absolute text-[7px] text-slate-400 font-mono pointer-events-none w-full text-center";
+                        // Position based on bar direction to avoid overlap
+                        if (isDown) {
+                            label.style.top = `calc(50% + ${mag * 50}% + 2px)`;
+                        } else {
+                            label.style.bottom = `calc(50% + ${mag * 50}% + 2px)`;
+                        }
+                        label.innerText = `|${idx.toString(2).padStart(QUBITS, '0')}⟩`;
+                        barContainer.appendChild(label);
+                    }
+                    chart.appendChild(barContainer);
+                });
+
+                row.appendChild(chart);
+                scrollContainer.appendChild(row);
+            }
+        }
+
         function createTextSprite(text, color = '#94a3b8') {
-            const formattedText = text.replace('|', '∣').replace('>', '⟩');          
+            const formattedText = text.replace('|', '∣').replace('>', '⟩');
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = 128; canvas.height = 64;
 
             ctx.fillStyle = color;
-            ctx.font = 'bold 44px "Courier New", monospace'; 
+            ctx.font = 'bold 44px "Courier New", monospace';
             ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';            
-            
+            ctx.textBaseline = 'middle';
+
             ctx.fillStyle = color; ctx.font = 'Bold 32px monospace'; ctx.textAlign = 'center';
             ctx.fillText(formattedText, 64, 40);
             const texture = new THREE.CanvasTexture(canvas);
@@ -384,39 +736,39 @@
             const container = document.getElementById('three-corkscrew-container');
             if (corkscrew.renderer) { corkscrew.renderer.setSize(container.clientWidth, container.clientHeight); return; }
             corkscrew.scene = new THREE.Scene();
-            corkscrew.camera = new THREE.PerspectiveCamera(50, container.clientWidth/container.clientHeight, 0.1, 1000);
+            corkscrew.camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
             corkscrew.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             corkscrew.renderer.setSize(container.clientWidth, container.clientHeight);
             container.appendChild(corkscrew.renderer.domElement);
             corkscrew.controls = new THREE.OrbitControls(corkscrew.camera, corkscrew.renderer.domElement);
             corkscrew.camera.position.set(-7.5, 0, 15);
-            corkscrew.controls.target.set(-7.5, 0, -10); 
+            corkscrew.controls.target.set(-7.5, 0, -10);
             corkscrew.controls.update();
 
             const grid = new THREE.GridHelper(40, 40, 0x334155, 0x1e293b);
             grid.position.y = -3;
             corkscrew.scene.add(grid);
 
-            for(let i=0; i<STATES; i++) {
+            for (let i = 0; i < STATES; i++) {
                 const geometry = new THREE.BufferGeometry();
                 geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(100 * 3), 3));
                 const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.8 }));
                 corkscrew.scene.add(line);
                 corkscrew.lines.push(line);
 
-                const needleGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(1,0,0)]);
+                const needleGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 0, 0)]);
                 const needle = new THREE.Line(needleGeom, new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 }));
                 corkscrew.scene.add(needle);
                 corkscrew.needles.push(needle);
 
-                const label = createTextSprite(`|${i.toString(2).padStart(QUBITS,'0')}⟩`);
+                const label = createTextSprite(`|${i.toString(2).padStart(QUBITS, '0')}⟩`);
                 label.position.set(i - (STATES / 2 - 0.5), -2.5, 2);
                 corkscrew.scene.add(label);
                 corkscrew.labels.push(label);
             }
 
             const compositeGeom = new THREE.BufferGeometry();
-            compositeGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(100*3), 3));
+            compositeGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(100 * 3), 3));
             corkscrew.compositeLine = new THREE.Line(compositeGeom, new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 4 }));
             corkscrew.scene.add(corkscrew.compositeLine);
         }
@@ -426,9 +778,9 @@
             const BASE_RADIUS = 1.8;
             const POINTS = 100;
             const PROPAGATION_STEP = 0.15;
-            const SPIRAL_WAVELENGTH = 1.2; 
-            
-            const compositePoints = Array.from({length: POINTS}, () => new Complex(0, 0));
+            const SPIRAL_WAVELENGTH = 1.2;
+
+            const compositePoints = Array.from({ length: POINTS }, () => new Complex(0, 0));
 
             stateVector.forEach((amp, idx) => {
                 const prob = amp.magSq();
@@ -436,49 +788,49 @@
                 const needle = corkscrew.needles[idx];
                 const label = corkscrew.labels[idx];
                 if (!line) return;
-                
-                if (prob < 0.001) { 
-                    line.visible = false; needle.visible = false; label.material.opacity = 0.1; 
-                    return; 
+
+                if (prob < 0.001) {
+                    line.visible = false; needle.visible = false; label.material.opacity = 0.1;
+                    return;
                 }
 
                 line.visible = true; needle.visible = true; label.material.opacity = 1;
                 line.material.color.setHSL(idx / STATES, 0.8, 0.5);
-                
+
                 const pos = line.geometry.attributes.position.array;
                 const phase0 = amp.phase();
                 const radius = Math.sqrt(prob) * BASE_RADIUS;
                 const xCenter = idx - (STATES / 2 - 0.5);
 
-                for(let i=0; i<POINTS; i++) {
+                for (let i = 0; i < POINTS; i++) {
                     const z = i * PROPAGATION_STEP;
                     const totalPhase = phase0 + (z * SPIRAL_WAVELENGTH) - animationTime;
-                    
+
                     const localX = Math.cos(totalPhase) * radius;
                     const localY = Math.sin(totalPhase) * radius;
-                    
-                    pos[i*3] = xCenter + localX;
-                    pos[i*3+1] = localY;
-                    pos[i*3+2] = -z;
+
+                    pos[i * 3] = xCenter + localX;
+                    pos[i * 3 + 1] = localY;
+                    pos[i * 3 + 2] = -z;
 
                     compositePoints[i] = compositePoints[i].add(new Complex(localX, localY));
                 }
                 line.geometry.attributes.position.needsUpdate = true;
-                
+
                 needle.position.set(xCenter, 0, 0);
                 needle.rotation.z = phase0 - animationTime;
                 needle.scale.setScalar(radius);
             });
 
             const cPos = corkscrew.compositeLine.geometry.attributes.position.array;
-            for(let i=0; i<POINTS; i++) {
+            for (let i = 0; i < POINTS; i++) {
                 const z = i * PROPAGATION_STEP;
-                cPos[i*3] = -(STATES / 2 + 6) + compositePoints[i].re; 
-                cPos[i*3+1] = compositePoints[i].im;
-                cPos[i*3+2] = -z;
+                cPos[i * 3] = -(STATES / 2 + 6) + compositePoints[i].re;
+                cPos[i * 3 + 1] = compositePoints[i].im;
+                cPos[i * 3 + 2] = -z;
             }
             corkscrew.compositeLine.geometry.attributes.position.needsUpdate = true;
-            
+
             corkscrew.renderer.render(corkscrew.scene, corkscrew.camera);
         }
 
@@ -486,13 +838,13 @@
             const container = document.getElementById('three-qsphere-container');
             if (qsphere.renderer) { qsphere.renderer.setSize(container.clientWidth, container.clientHeight); return; }
             qsphere.scene = new THREE.Scene();
-            qsphere.camera = new THREE.PerspectiveCamera(50, container.clientWidth/container.clientHeight, 0.1, 1000);
+            qsphere.camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
             qsphere.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             qsphere.renderer.setSize(container.clientWidth, container.clientHeight);
             container.appendChild(qsphere.renderer.domElement);
             qsphere.controls = new THREE.OrbitControls(qsphere.camera, qsphere.renderer.domElement);
             qsphere.camera.position.set(6, 6, 8);
-            qsphere.camera.lookAt(0,0,0);
+            qsphere.camera.lookAt(0, 0, 0);
 
             const shellGeom = new THREE.SphereGeometry(4, 32, 32);
             const shellMat = new THREE.MeshBasicMaterial({ color: 0x334155, wireframe: true, transparent: true, opacity: 0.1 });
@@ -503,7 +855,7 @@
                 const phi = (k / QUBITS) * Math.PI;
                 const r = 4 * Math.sin(phi);
                 const y = 4 * Math.cos(phi);
-                
+
                 if (r > 0.1) {
                     const ringGeom = new THREE.RingGeometry(r - 0.02, r + 0.02, 64);
                     const ringMat = new THREE.MeshBasicMaterial({ color: 0x475569, side: THREE.DoubleSide, transparent: true, opacity: 0.2 });
@@ -526,7 +878,7 @@
                 qsphere.scene.add(meridian);
             }
 
-            for(let i=0; i<STATES; i++) {
+            for (let i = 0; i < STATES; i++) {
                 const node = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
                 const hamming = i.toString(2).split('1').length - 1;
                 const phi = (hamming / QUBITS) * Math.PI;
@@ -535,7 +887,7 @@
                 qsphere.scene.add(node);
                 qsphere.nodes.push(node);
 
-                const label = createTextSprite(`|${i.toString(2).padStart(QUBITS,'0')}⟩`);
+                const label = createTextSprite(`|${i.toString(2).padStart(QUBITS, '0')}⟩`);
                 label.position.copy(node.position).multiplyScalar(1.25);
                 qsphere.scene.add(label);
                 qsphere.labels.push(label);
@@ -550,15 +902,15 @@
                 const label = qsphere.labels[i];
                 if (!node || !label) return;
 
-                if (prob < 0.001) { 
-                    node.scale.setScalar(0.4); 
-                    node.material.color.setHex(0x1e293b); 
+                if (prob < 0.001) {
+                    node.scale.setScalar(0.4);
+                    node.material.color.setHex(0x1e293b);
                     label.visible = false;
-                } 
-                else { 
+                }
+                else {
                     label.visible = true;
-                    node.scale.setScalar(0.5 + Math.sqrt(prob) * 3.5); 
-                    node.material.color.setHSL(amp.phase()/(2*Math.PI) + 0.5, 0.8, 0.5); 
+                    node.scale.setScalar(0.5 + Math.sqrt(prob) * 3.5);
+                    node.material.color.setHSL(amp.phase() / (2 * Math.PI) + 0.5, 0.8, 0.5);
                 }
             });
             qsphere.renderer.render(qsphere.scene, qsphere.camera);
@@ -570,7 +922,7 @@
             container.innerHTML = '';
             polytopeViews = [];
 
-            for(let q=0; q<QUBITS; q++) {
+            for (let q = 0; q < QUBITS; q++) {
                 const card = document.createElement('div');
                 card.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 flex flex-col items-center min-h-[160px]";
                 card.innerHTML = `<h4 class="text-[9px] font-bold text-slate-400 uppercase mb-1">Q${q}</h4><div id="poly-${q}" class="w-full h-28 block overflow-hidden"></div><div class="purity-val text-[8px] text-sky-400 mt-1"></div>`;
@@ -585,13 +937,13 @@
                 renderer.setSize(w, h);
                 viewContainer.appendChild(renderer.domElement);
                 camera.position.set(3, 2, -4);
-                camera.lookAt(0,0,0);
+                camera.lookAt(0, 0, 0);
                 const bloch = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 12), new THREE.MeshBasicMaterial({ color: 0x475569, wireframe: true, transparent: true, opacity: 0.1 }));
                 scene.add(bloch);
 
                 const statePoint = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
                 scene.add(statePoint);
-                const traceLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({color: 0x38bdf8, transparent: true, opacity: 0.7}));
+                const traceLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.7 }));
                 scene.add(traceLine);
 
 
@@ -611,7 +963,7 @@
                 const labelY2 = createTextSprite("|->", "#a6bfb3");
                 labelY2.position.set(-1.4, 0, 0);
                 scene.add(labelY2);
-                
+
 
                 const labelZ = createTextSprite("|0>", "#a6bfb3");
                 labelZ.position.set(0, 1.4, 0);
@@ -620,26 +972,26 @@
                 const labelZ2 = createTextSprite("|1>", "#a6bfb3");
                 labelZ2.position.set(0, -1.4, 0);
                 scene.add(labelZ2);
-                
+
 
                 const labelX = createTextSprite("|-i>", "#a6bfb3");
                 labelX.position.set(0, 0, 1.4);
-                scene.add(labelX);                
+                scene.add(labelX);
 
                 const labelX2 = createTextSprite("|i>", "#a6bfb3");
                 labelX2.position.set(0, 0, -1.4);
-                scene.add(labelX2);                
-                
+                scene.add(labelX2);
+
                 polytopeViews.push({ scene, camera, renderer, viewContainer, statePoint, traceLine, purityText: card.querySelector('.purity-val'), controls });
             }
         }
-      
+
 
         function initHintonLabels() {
             const top = document.getElementById('hinton-top-labels');
             const left = document.getElementById('hinton-left-labels');
             if (!top || top.children.length > 0) return;
-            for(let i=0; i<STATES; i++) {
+            for (let i = 0; i < STATES; i++) {
                 const b = i.toString(2).padStart(QUBITS, '0');
                 const tL = document.createElement('div'); tL.className = "hinton-label col"; tL.innerText = b; top.appendChild(tL);
                 const lL = document.createElement('div'); lL.className = "hinton-label row"; lL.innerText = b; left.appendChild(lL);
@@ -647,6 +999,7 @@
         }
 
         function updateViews(lastMatrix, lastGateInfo) {
+            if (activeTab === 'history') updateHistoryView();
             updateCircuitView();
             updateMatrixDisplay(lastMatrix, lastGateInfo);
             updateVectorDisplay();
@@ -655,7 +1008,7 @@
             updateEntanglementGraph();
             updateInterpretation(lastGateInfo);
             const list = document.getElementById('probabilities-list');
-            if(list) list.innerHTML = stateVector.map((amp, i) => amp.magSq() > 0.001 ? `<div class="p-1 text-sky-400 font-bold border-b border-slate-800">|${i.toString(2).padStart(QUBITS,'0')}⟩ ${(amp.magSq()*100).toFixed(1)}%</div>` : '').join('');
+            if (list) list.innerHTML = stateVector.map((amp, i) => amp.magSq() > 0.001 ? `<div class="p-1 text-sky-400 font-bold border-b border-slate-800">|${i.toString(2).padStart(QUBITS, '0')}⟩ ${(amp.magSq() * 100).toFixed(1)}%</div>` : '').join('');
         }
 
         function updateInterpretation(info) {
@@ -663,7 +1016,7 @@
             const tag = document.getElementById('insight-gate-tag');
             if (!content || !tag) return;
             tag.innerText = info ? info.split(' ')[0] : "NONE";
-            
+
             const interpretations = {
                 'H': "Creates a superposition by mapping basis states to balanced linear combinations.",
                 'X': "Bit-flip: maps |0⟩ to |1⟩ and vice versa.",
@@ -692,7 +1045,7 @@
                                 ${amp.toString() === "0" ? "0" : amp.toString()}
                             </span>
                         </div>
-                    `;                    
+                    `;
                 }).join('');
             }
         }
@@ -712,13 +1065,13 @@
             const matDiv = document.getElementById('matrix-display');
             const titleEl = document.getElementById('matrix-title');
             if (titleEl) titleEl.innerText = info ? `Gate Matrix: ${info}` : "Gate Matrix";
-            
+
             if (matDiv) {
                 matDiv.innerHTML = '';
-                for(let r=0; r<STATES; r++) {
-                    for(let c=0; c<STATES; c++) {
+                for (let r = 0; r < STATES; r++) {
+                    for (let c = 0; c < STATES; c++) {
                         const cell = document.createElement('div');
-                        const val = matrix ? matrix[r][c] : (r===c ? new Complex(1) : new Complex(0));
+                        const val = matrix ? matrix[r][c] : (r === c ? new Complex(1) : new Complex(0));
                         cell.className = `matrix-cell ${val.magSq() > 0 ? 'text-sky-300 bg-sky-900/20' : 'text-slate-800'}`;
                         cell.innerText = val.toString() === "0" ? "·" : val.toString();
                         matDiv.appendChild(cell);
@@ -729,9 +1082,9 @@
 
         function updatePolytopeView() {
             polytopeViews.forEach((view, q) => {
-                let p0 = 0, p1 = 0, rho01 = new Complex(0,0);
-                const mask = 1 << ((QUBITS-1)-q);
-                stateVector.forEach((amp, i) => { 
+                let p0 = 0, p1 = 0, rho01 = new Complex(0, 0);
+                const mask = 1 << ((QUBITS - 1) - q);
+                stateVector.forEach((amp, i) => {
                     const prob = amp.magSq();
                     if (i & mask) p1 += prob; else {
                         p0 += prob;
@@ -740,10 +1093,10 @@
                     }
                 });
                 const x = 2 * rho01.re, y = 2 * rho01.im, z = p0 - p1;
-                const r = Math.sqrt(x*x + y*y + z*z);
+                const r = Math.sqrt(x * x + y * y + z * z);
                 view.statePoint.position.set(x, z, y);
-                view.traceLine.geometry.setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(x, z, y)]);
-                view.purityText.innerText = `Purity: ${((1+r*r)/2*100).toFixed(0)}% | R: ${r.toFixed(2)}`;
+                view.traceLine.geometry.setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(x, z, y)]);
+                view.purityText.innerText = `Purity: ${((1 + r * r) / 2 * 100).toFixed(0)}% | R: ${r.toFixed(2)}`;
                 //view.scene.rotation.y += 0.005;
                 view.renderer.render(view.scene, view.camera);
             });
@@ -753,8 +1106,8 @@
             const hinton = document.getElementById('hinton-container');
             if (!hinton) return;
             hinton.innerHTML = '';
-            for(let i=0; i<STATES; i++) {
-                for(let j=0; j<STATES; j++) {
+            for (let i = 0; i < STATES; i++) {
+                for (let j = 0; j < STATES; j++) {
                     const val = stateVector[i].mul(new Complex(stateVector[j].re, -stateVector[j].im));
                     const cell = document.createElement('div'); cell.className = "bg-slate-950 flex items-center justify-center";
                     if (val.mag() > 0.001) {
@@ -793,10 +1146,10 @@
                     new THREE.MeshPhongMaterial({ color: 0x38bdf8, emissive: 0x0ea5e9, emissiveIntensity: 0.5 })
                 );
                 node.position.set(x, 0, z);
-        
+
                 const label = createTextSprite(`Q${i}`, "#ffffff");
                 label.position.set(x * 1.2, 0.8, z * 1.2);
-        
+
                 entanglementView.scene.add(node);
                 entanglementView.scene.add(label);
                 entanglementView.nodes.push(node);
@@ -817,102 +1170,102 @@
         function getGeometricMeasure(rdm) {
             // Uses the max diagonal element as a proxy for the geometric measure (overlap)
             let maxEig = 0;
-            for(let i=0; i<4; i++) maxEig = Math.max(maxEig, rdm[i][i].re);
+            for (let i = 0; i < 4; i++) maxEig = Math.max(maxEig, rdm[i][i].re);
             return Math.max(0, 1 - maxEig);
         }
 
         function getPurityMetric(rdm) {
-              // Purity of subsystem A (qubit 1)
-              let rhoA = [[rdm[0][0].add(rdm[1][1]), rdm[0][2].add(rdm[1][3])],
-                          [rdm[2][0].add(rdm[3][1]), rdm[2][2].add(rdm[3][3])]];
-              
-              let purityA = rhoA[0][0].magSq() + rhoA[0][1].magSq() + rhoA[1][0].magSq() + rhoA[1][1].magSq();
-              let pairPurity = 0;
-              for(let r=0; r<4; r++) for(let c=0; c<4; c++) pairPurity += rdm[r][c].magSq();
-              return Math.max(0, pairPurity - purityA) * 2;
+            // Purity of subsystem A (qubit 1)
+            let rhoA = [[rdm[0][0].add(rdm[1][1]), rdm[0][2].add(rdm[1][3])],
+            [rdm[2][0].add(rdm[3][1]), rdm[2][2].add(rdm[3][3])]];
+
+            let purityA = rhoA[0][0].magSq() + rhoA[0][1].magSq() + rhoA[1][0].magSq() + rhoA[1][1].magSq();
+            let pairPurity = 0;
+            for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) pairPurity += rdm[r][c].magSq();
+            return Math.max(0, pairPurity - purityA) * 2;
         }
 
         function calculateBipartiteEntanglement(q1, q2) {
-             const metric = document.getElementById('metric-selector')?.value || 'purity';                          
-             let rdm = Array(4).fill(0).map(() => Array(4).fill(new Complex(0, 0)));
-             const mask1 = 1 << (QUBITS - 1 - q1);
-             const mask2 = 1 << (QUBITS - 1 - q2);
+            const metric = document.getElementById('metric-selector')?.value || 'purity';
+            let rdm = Array(4).fill(0).map(() => Array(4).fill(new Complex(0, 0)));
+            const mask1 = 1 << (QUBITS - 1 - q1);
+            const mask2 = 1 << (QUBITS - 1 - q2);
 
-             // Optimized RDM construction
-             for (let i = 0; i < STATES; i++) {
-                 if (stateVector[i].magSq() < 1e-9) continue;
-                 for (let j = 0; j < STATES; j++) {
-                     if (stateVector[j].magSq() < 1e-9) continue;
-                     
-                     // Check match of environment bits
-                     // If bits other than q1, q2 differ, the trace is zero
-                     if (((i ^ j) & ~(mask1 | mask2)) !== 0) continue;
+            // Optimized RDM construction
+            for (let i = 0; i < STATES; i++) {
+                if (stateVector[i].magSq() < 1e-9) continue;
+                for (let j = 0; j < STATES; j++) {
+                    if (stateVector[j].magSq() < 1e-9) continue;
 
-                     const row = (((i & mask1) ? 2 : 0) + ((i & mask2) ? 1 : 0));
-                     const col = (((j & mask1) ? 2 : 0) + ((j & mask2) ? 1 : 0));
-                     rdm[row][col] = rdm[row][col].add(stateVector[i].mul(new Complex(stateVector[j].re, -stateVector[j].im)));
-                 }
-             }
+                    // Check match of environment bits
+                    // If bits other than q1, q2 differ, the trace is zero
+                    if (((i ^ j) & ~(mask1 | mask2)) !== 0) continue;
 
-             if (metric === 'negativity') return getNegativity(rdm);
-             if (metric === 'geometric') return getGeometricMeasure(rdm);
-             return getPurityMetric(rdm);
+                    const row = (((i & mask1) ? 2 : 0) + ((i & mask2) ? 1 : 0));
+                    const col = (((j & mask1) ? 2 : 0) + ((j & mask2) ? 1 : 0));
+                    rdm[row][col] = rdm[row][col].add(stateVector[i].mul(new Complex(stateVector[j].re, -stateVector[j].im)));
+                }
+            }
+
+            if (metric === 'negativity') return getNegativity(rdm);
+            if (metric === 'geometric') return getGeometricMeasure(rdm);
+            return getPurityMetric(rdm);
         }
 
         function classifyEntanglementState() {
-             // Placeholder for future state classification logic
+            // Placeholder for future state classification logic
         }
 
 
-function updateEntanglementGraph() {
-    if (!entanglementView.renderer) return;
+        function updateEntanglementGraph() {
+            if (!entanglementView.renderer) return;
 
-    // Clear existing edges
-    entanglementView.edges.forEach(e => entanglementView.scene.remove(e));
-    entanglementView.edges = [];
+            // Clear existing edges
+            entanglementView.edges.forEach(e => entanglementView.scene.remove(e));
+            entanglementView.edges = [];
 
-    const metric = document.getElementById('metric-selector')?.value || 'purity';
+            const metric = document.getElementById('metric-selector')?.value || 'purity';
 
-    for (let i = 0; i < QUBITS; i++) {
-        for (let j = i + 1; j < QUBITS; j++) {
-            const strength = calculateBipartiteEntanglement(i, j);
-            
-            if (strength > 0.01) {
-                const v1 = entanglementView.nodes[i].position;
-                const v2 = entanglementView.nodes[j].position;
-                const distance = v1.distanceTo(v2);
-                
-                const geometry = new THREE.CylinderGeometry(0.04 * strength, 0.04 * strength, distance, 8);
-                
-                // COLOR LOGIC:
-                // Purity/Negativity = Cyan (0.5 HSL)
-                // Geometric = Purple/Magenta (0.8 HSL)
-                let hue = (metric === 'geometric') ? 0.8 : 0.5;
-                
-                const edgeMaterial = new THREE.MeshPhongMaterial({ 
-                    color: new THREE.Color().setHSL(hue, 1, 0.4 + (strength * 0.4)),
-                    transparent: true,
-                    opacity: 0.4 + (strength * 0.6),
-                    emissive: new THREE.Color().setHSL(hue, 1, 0.5),
-                    emissiveIntensity: strength * 2
-                });
+            for (let i = 0; i < QUBITS; i++) {
+                for (let j = i + 1; j < QUBITS; j++) {
+                    const strength = calculateBipartiteEntanglement(i, j);
 
-                const edge = new THREE.Mesh(geometry, edgeMaterial);
-                
-                // Positioning
-                edge.position.copy(v1).lerp(v2, 0.5);
-                edge.lookAt(v2);
-                edge.rotateX(Math.PI / 2);
+                    if (strength > 0.01) {
+                        const v1 = entanglementView.nodes[i].position;
+                        const v2 = entanglementView.nodes[j].position;
+                        const distance = v1.distanceTo(v2);
 
-                entanglementView.scene.add(edge);
-                entanglementView.edges.push(edge);
+                        const geometry = new THREE.CylinderGeometry(0.04 * strength, 0.04 * strength, distance, 8);
+
+                        // COLOR LOGIC:
+                        // Purity/Negativity = Cyan (0.5 HSL)
+                        // Geometric = Purple/Magenta (0.8 HSL)
+                        let hue = (metric === 'geometric') ? 0.8 : 0.5;
+
+                        const edgeMaterial = new THREE.MeshPhongMaterial({
+                            color: new THREE.Color().setHSL(hue, 1, 0.4 + (strength * 0.4)),
+                            transparent: true,
+                            opacity: 0.4 + (strength * 0.6),
+                            emissive: new THREE.Color().setHSL(hue, 1, 0.5),
+                            emissiveIntensity: strength * 2
+                        });
+
+                        const edge = new THREE.Mesh(geometry, edgeMaterial);
+
+                        // Positioning
+                        edge.position.copy(v1).lerp(v2, 0.5);
+                        edge.lookAt(v2);
+                        edge.rotateX(Math.PI / 2);
+
+                        entanglementView.scene.add(edge);
+                        entanglementView.edges.push(edge);
+                    }
+                }
             }
+
+            classifyEntanglementState();
+            entanglementView.renderer.render(entanglementView.scene, entanglementView.camera);
         }
-    }
-    
-    classifyEntanglementState();
-    entanglementView.renderer.render(entanglementView.scene, entanglementView.camera);
-}
 
 
         function animate() {
@@ -922,7 +1275,7 @@ function updateEntanglementGraph() {
             if (activeTab === 'qsphere') renderQSphere();
             if (activeTab === 'hinton') {
                 polytopeViews.forEach(view => {
-                    if(view.controls){
+                    if (view.controls) {
                         view.controls.update();
                         view.renderer.render(view.scene, view.camera);
                     }
@@ -934,8 +1287,8 @@ function updateEntanglementGraph() {
             }
         }
 
-      function init() {
-          document.documentElement.style.setProperty('--states', STATES);
+        function init() {
+            document.documentElement.style.setProperty('--states', STATES);
             const container = document.getElementById('view-circuit');
             for (let i = 0; i < STATES; i++) {
                 const clone = document.getElementById('disk-template').content.cloneNode(true);
@@ -960,28 +1313,28 @@ function updateEntanglementGraph() {
         function renderCircuitLines() {
             for (let q = 0; q < QUBITS; q++) {
                 const row = document.getElementById(`row-${q}`);
-                if(!row) continue;
+                if (!row) continue;
                 row.innerHTML = '';
                 circuit.forEach((gate, idx) => {
                     const gEl = document.createElement('div');
                     gEl.className = `w-7 h-7 flex items-center justify-center rounded cursor-pointer shrink-0 z-20 ${idx < currentStep ? '' : 'opacity-10'}`;
                     if (gate.target === q) {
                         let t = gate.type;
-                        if(gate.type === 'SWAP'){
+                        if (gate.type === 'SWAP') {
                             t = 'x';
-                        } else if(gate.type === 'CU'){
+                        } else if (gate.type === 'CU') {
                             t = 'U';
-                        } else if(gate.type === 'CZ' || gate.type === 'MCZ'){
+                        } else if (gate.type === 'CZ' || gate.type === 'MCZ') {
                             t = 'Z';
                         }
-                        
+
                         gEl.innerText = t;
-                        
+
                         gEl.classList.add('bg-sky-600', 'text-white', 'font-bold', 'text-[9px]');
-                        gEl.onclick = () => { 
-                            circuit.splice(idx, 1); 
+                        gEl.onclick = () => {
+                            circuit.splice(idx, 1);
                             if (currentStep > idx) currentStep--;
-                            runSimulation(); 
+                            runSimulation();
                         };
                     } else if (gate.controls.includes(q)) {
                         if (gate.type === 'SWAP') {
@@ -1003,18 +1356,18 @@ function updateEntanglementGraph() {
             let controls = [];
             let angles = []
             if (type === 'CNOT' || type === 'CZ' || type === 'CU' || type === 'SWAP') {
-                const promptText = type === 'SWAP' ? `Second qubit for SWAP (0-${QUBITS-1}):` : `Control for ${type} (0-${QUBITS-1}):`;
+                const promptText = type === 'SWAP' ? `Second qubit for SWAP (0-${QUBITS - 1}):` : `Control for ${type} (0-${QUBITS - 1}):`;
                 const c = prompt(promptText);
-                if (c === null || isNaN(parseInt(c)) || parseInt(c) === q) return; 
-                controls = [parseInt(c)]; 
+                if (c === null || isNaN(parseInt(c)) || parseInt(c) === q) return;
+                controls = [parseInt(c)];
             } else if (type === 'MCZ') {
-                controls = Array.from({length: QUBITS}, (_, i) => i).filter(i => i !== q);
+                controls = Array.from({ length: QUBITS }, (_, i) => i).filter(i => i !== q);
             }
-            if (type === 'U' || type === 'CU'){
+            if (type === 'U' || type === 'CU') {
                 const c = prompt(`Theta, Phi, Lambda:`);
                 angles = c.split(/\s*,\s*/).map(item => {
                     const expression = item.toLowerCase().replace(/pi/g, Math.PI);
-  
+
                     return Function(`return (${expression})`)();
                 });
             }
@@ -1023,10 +1376,10 @@ function updateEntanglementGraph() {
         }
 
         function addGroverDiffusion() {
-            const hGates = Array.from({length: QUBITS}, (_, i) => ({type: 'H', target: i, controls: []}));
-            const xGates = Array.from({length: QUBITS}, (_, i) => ({type: 'X', target: i, controls: []}));
-            const mczGate = {type: 'MCZ', target: QUBITS - 1, controls: Array.from({length: QUBITS - 1}, (_, i) => i)};
-            
+            const hGates = Array.from({ length: QUBITS }, (_, i) => ({ type: 'H', target: i, controls: [] }));
+            const xGates = Array.from({ length: QUBITS }, (_, i) => ({ type: 'X', target: i, controls: [] }));
+            const mczGate = { type: 'MCZ', target: QUBITS - 1, controls: Array.from({ length: QUBITS - 1 }, (_, i) => i) };
+
             circuit.push(...hGates, ...xGates, mczGate, ...xGates, ...hGates);
             currentStep = circuit.length;
             runSimulation();
@@ -1035,74 +1388,75 @@ function updateEntanglementGraph() {
         function addBellState() {
             const hGate = { type: 'H', target: 0, controls: [], angles: [] };
             const cnotGate = { type: 'CNOT', target: 1, controls: [0], angles: [] };
-    
+
             circuit.push(hGate, cnotGate);
-    
+
             currentStep = circuit.length;
             runSimulation();
         }
 
         function addQFT() {
-          for (let i = 0; i < QUBITS; i++) {
-              circuit.push({ type: 'H', target: i, controls: [], angles: [] });
+            for (let i = 0; i < QUBITS; i++) {
+                circuit.push({ type: 'H', target: i, controls: [], angles: [] });
 
-              for (let j = i + 1; j < QUBITS; j++) {
-                  const distance = j - i;
-                  const angle = (2 * Math.PI) / Math.pow(2, distance + 1);
-                  
-                  circuit.push({ 
-                      type: 'CU', 
-                      target: i, 
-                      controls: [j], 
-                      angles: [0, 0, angle]
-                  });
-              }
-          }
+                for (let j = i + 1; j < QUBITS; j++) {
+                    const distance = j - i;
+                    const angle = (2 * Math.PI) / Math.pow(2, distance + 1);
 
-          for (let i = 0; i < Math.floor(QUBITS / 2); i++) {
-              const target1 = i;
-              const target2 = QUBITS - 1 - i;
-              circuit.push({ type: 'SWAP', target: target1, controls: [target2], angles: [] });
-          }
+                    circuit.push({
+                        type: 'CU',
+                        target: i,
+                        controls: [j],
+                        angles: [0, 0, angle]
+                    });
+                }
+            }
 
-          currentStep = circuit.length;
-          runSimulation();
+            for (let i = 0; i < Math.floor(QUBITS / 2); i++) {
+                const target1 = i;
+                const target2 = QUBITS - 1 - i;
+                circuit.push({ type: 'SWAP', target: target1, controls: [target2], angles: [] });
+            }
+
+            currentStep = circuit.length;
+            runSimulation();
         }
 
         function addIQFT() {
-          
-          for (let i = 0; i < Math.floor(QUBITS / 2); i++) {
-              const target1 = i;
-              const target2 = QUBITS - 1 - i;
-              circuit.push({ type: 'SWAP', target: target1, controls: [target2], angles: [] });
-          }
 
-          for (let i = QUBITS - 1; i >= 0; i--) {
-              
-              for (let j = QUBITS - 1; j > i; j--) {
-                  const distance = j - i;
-                  const angle = -(2 * Math.PI) / Math.pow(2, distance + 1);
-                  
-                  circuit.push({ 
-                      type: 'U', 
-                      target: i, 
-                      controls: [j], 
-                      angles: [0, 0, angle]
-                  });
-              }
+            for (let i = 0; i < Math.floor(QUBITS / 2); i++) {
+                const target1 = i;
+                const target2 = QUBITS - 1 - i;
+                circuit.push({ type: 'SWAP', target: target1, controls: [target2], angles: [] });
+            }
 
-              circuit.push({ type: 'H', target: i, controls: [], angles: [] });
-          }
+            for (let i = QUBITS - 1; i >= 0; i--) {
 
-          currentStep = circuit.length;
-          runSimulation();
-      }      
+                for (let j = QUBITS - 1; j > i; j--) {
+                    const distance = j - i;
+                    const angle = -(2 * Math.PI) / Math.pow(2, distance + 1);
 
-        function stepForward() { if(currentStep < circuit.length) { currentStep++; runSimulation(); } }
-        function stepBack() { if(currentStep > 0) { currentStep--; runSimulation(); } }
+                    circuit.push({
+                        type: 'U',
+                        target: i,
+                        controls: [j],
+                        angles: [0, 0, angle]
+                    });
+                }
+
+                circuit.push({ type: 'H', target: i, controls: [], angles: [] });
+            }
+
+            currentStep = circuit.length;
+            runSimulation();
+        }
+
+        function stepForward() { if (currentStep < circuit.length) { currentStep++; runSimulation(); } }
+        function stepBack() { if (currentStep > 0) { currentStep--; runSimulation(); } }
         function resetStep() { currentStep = 0; runSimulation(); }
         function resetCircuit() { circuit = []; currentStep = 0; runSimulation(); }
         window.onload = init;
     </script>
 </body>
+
 </html>
