@@ -25,5 +25,5 @@ how different states are "out of phase". In this case, they are
 180 degrees out of phase.
 
 <p align="center">
-  <img src="screenshots/waveview2" width="60%">
+  <img src="screenshots/waveview2.png" width="60%">
 </p>
