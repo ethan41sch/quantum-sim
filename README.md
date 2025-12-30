@@ -33,3 +33,27 @@ how different states are "out of phase". In this case, they are
 <p align="center">
   <img src="screenshots/waveview2.png" width="75%">
 </p>
+
+This screenshot shows the Q-Sphere view, similar to the IBM Qiskit
+Q-Sphere.
+
+<p align="center">
+  <img src="screenshots/qsphere.png" width="75%">
+</p>
+
+This screenshot shows a Hinton Matrix along with Polytope Spheres. The
+polytope spheres can be viewed as Bloch Spheres for the individual
+qubits.
+
+<p align="center">
+   <img src="screenshots/hinton+polytopes.png" width="75%">
+</p>
+
+This screen shot shows the history view. The history view allows one
+to see how the amplitudes evolve for each state as the gates are being
+applied.
+
+<p align="center">
+   <img src="screenshots/history.png" width="75%">
+</p>
+
