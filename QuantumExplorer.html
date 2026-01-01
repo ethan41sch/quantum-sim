@@ -76,6 +76,17 @@
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
         }
 
+        #view-wavefront {
+            position: relative;
+        }
+
+        #three-wavefront-container {
+            width: 100%;
+            height: 500px;
+            background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
+            border-radius: 0.75rem;
+        }        
+
         .hinton-wrapper {
             display: inline-grid;
             grid-template-areas: ". top" "left main";
@@ -217,8 +228,8 @@
                 <nav class="flex gap-4 mt-1 text-xs">
                     <button onclick="switchTab('circuit')" id="tab-circuit"
                         class="tab-btn active px-2 py-1 transition">Phase Disks</button>
-                    <button onclick="switchTab('corkscrew')" id="tab-corkscrew" class="tab-btn px-2 py-1 transition">3D
-                        Waves</button>
+                    <button onclick="switchTab('corkscrew')" id="tab-corkscrew" class="tab-btn px-2 py-1 transition">3D Waves</button>
+                    <button onclick="switchTab('wavefront')" id="tab-wavefront" class="tab-btn px-2 py-1 transition">Wave Fronts</button>
                     <button onclick="switchTab('qsphere')" id="tab-qsphere"
                         class="tab-btn px-2 py-1 transition">Q-Sphere</button>
                     <button onclick="switchTab('hinton')" id="tab-hinton" class="tab-btn px-2 py-1 transition">Hinton &
@@ -329,6 +340,12 @@
                     <div id="view-circuit" class="view-panel grid grid-cols-4 sm:grid-cols-8 gap-4"></div>
                     <div id="view-corkscrew" class="view-panel hidden relative">
                         <div id="three-corkscrew-container" class="w-full h-[400px]"></div>
+                    </div>
+                    <div id="view-wavefront" class="view-panel hidden relative">
+                      <div id="three-wavefront-container"></div>
+                      <div class="absolute bottom-4 left-4 bg-slate-900/80 p-2 rounded text-[10px] text-slate-400 border border-slate-700">
+                        Left Click: Rotate | Right Click: Pan | Scroll: Zoom
+                      </div>
                     </div>
                     <div id="view-qsphere" class="view-panel hidden relative">
                         <div id="three-qsphere-container" class="w-full h-[400px]"></div>
@@ -443,9 +460,21 @@
         let activeTab = 'circuit';
         let stateHistory = [];
         let corkscrew = { scene: null, camera: null, renderer: null, controls: null, lines: [], labels: [], needles: [], compositeLine: null };
+        let wavefront = { scene: null, camera: null, renderer: null, controls: null, mesh: null, geometry: null, container: null };
         let qsphere = { scene: null, camera: null, renderer: null, controls: null, nodes: [], labels: [] };
         let entanglementView = { scene: null, camera: null, renderer: null, controls: null, nodes: [], edges: [] };
         let polytopeViews = [];
+        let wavefrontlabels = [];
+
+        const WF_GRID_X = 8;
+        const WF_SPACING = 2.5;
+
+
+        function getEmitterCoords(s) {
+           const ex = ((s % WF_GRID_X) - (WF_GRID_X / 2 - 0.5)) * WF_SPACING;
+           const ey = ((Math.floor(s / WF_GRID_X)) - (2 - 0.5)) * WF_SPACING; // 4 rows total
+           return { x: ex, y: ey };
+        }
 
         function switchTab(tabId) {
             document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
@@ -455,6 +484,7 @@
             activeTab = tabId;
             setTimeout(() => {
                 if (tabId === 'corkscrew') initCorkscrew();
+                if (tabId === 'wavefront') initWavefront();
                 if (tabId === 'qsphere') initQSphere();
                 if (tabId === 'hinton') { initPolytopeView(); initHintonLabels(); }
                 if (tabId === 'entanglement') initEntanglementView();
@@ -833,6 +863,153 @@
 
             corkscrew.renderer.render(corkscrew.scene, corkscrew.camera);
         }
+
+        function initWavefront() {
+              const container = document.getElementById('three-wavefront-container');
+              wavefront.container = container;
+              if (wavefront.renderer) {
+                 wavefront.renderer.setSize(container.clientWidth, container.clientHeight);
+                 return;
+             }
+
+             wavefront.scene = new THREE.Scene();
+             wavefront.camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+             wavefront.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+             wavefront.renderer.setSize(container.clientWidth, container.clientHeight);
+             container.appendChild(wavefront.renderer.domElement);
+
+             wavefront.controls = new THREE.OrbitControls(wavefront.camera, wavefront.renderer.domElement);
+             wavefront.camera.position.set(0, 15, 20);
+             wavefront.controls.update();
+
+             // Plane Setup
+             const segments = 128;
+             wavefront.geometry = new THREE.PlaneGeometry(20, 20, segments, segments);
+             const material = new THREE.MeshPhongMaterial({
+               color: 0x38bdf8,
+               side: THREE.DoubleSide,
+               wireframe: true,
+               transparent: true,
+               opacity: 0.4,
+               emissive: 0x0ea5e9,
+               emissiveIntensity: 0.2
+             });
+
+             wavefront.mesh = new THREE.Mesh(wavefront.geometry, material);
+             wavefront.mesh.rotation.x = -Math.PI / 2;
+             wavefront.scene.add(wavefront.mesh);
+
+             createWavefrontLabels();
+
+             const ambientLight = new THREE.AmbientLight(0x404040);
+             const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+             pointLight.position.set(10, 20, 10);
+             wavefront.scene.add(ambientLight, pointLight);
+         }                        
+
+         function createWavefrontLabels() {
+            const GRID_X = 8;
+            const GRID_Y = 4;
+            const SPACING = 2.5;
+
+            for (let s = 0; s < STATES; s++) {
+               // Create a small canvas for the text
+               const canvas = document.createElement('canvas');
+               const context = canvas.getContext('2d');
+               canvas.width = 128;
+               canvas.height = 64;
+
+               // Label style
+               context.fillStyle = 'rgba(15, 23, 42, 0.7)'; // Dark background
+               context.fillRect(0, 0, 128, 64);
+               context.font = 'Bold 24px Inter, sans-serif';
+               context.fillStyle = '#f8fafc';
+               context.textAlign = 'center';
+        
+               // Binary string for the state (e.g., "01011")
+               const binaryLabel = s.toString(2).padStart(5, '0');
+               context.fillText(`|${binaryLabel}⟩`, 64, 40);
+
+               const texture = new THREE.CanvasTexture(canvas);
+               const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.9 });
+               const sprite = new THREE.Sprite(spriteMaterial);
+
+               const coords = getEmitterCoords(s);
+               const ex = coords.x;
+               const ey =  - coords.y;                 
+               sprite.position.set(ex, 0.5, ey);
+               sprite.scale.set(2, 1, 1);
+
+               wavefront.scene.add(sprite);
+               wavefrontlabels.push({ sprite, stateIndex: s, baseEx: ex, baseEy: ey });
+            }
+    }
+                        
+
+function renderWavefront() {
+    if (!wavefront.renderer || activeTab !== 'wavefront') return;
+
+    const positions = wavefront.geometry.attributes.position.array;
+    const time = animationTime * 2.0;
+    
+    // Map 32 states to a 4x8 grid for spatial emitters
+
+    for (let i = 0; i < positions.length; i += 3) {
+        const x = positions[i];
+        const y = positions[i + 1];
+        let z = 0;
+
+        // Calculate interference from all 32 basis states
+        for (let s = 0; s < STATES; s++) {
+            const amp = stateVector[s];
+            if (amp.magSq() < 0.001) continue;
+
+            const coords = getEmitterCoords(s);
+                              
+            const ex = coords.x;
+            const ey = coords.y;
+            
+            const dist = Math.sqrt((x - ex) ** 2 + (y - ey) ** 2);
+            const mag = amp.mag();
+            const phase = amp.phase();
+
+            // Wave equation: amplitude * sin(distance - time + initial_phase)
+            // Decay prevents the visual from becoming pure noise
+            const decay = Math.exp(-dist * 0.3);
+            z += mag * Math.sin(dist * 1.5 - time + phase) * decay;
+        }
+
+        positions[i + 2] = z * 1.5; // Update Z-height
+    }
+
+    wavefront.geometry.attributes.position.needsUpdate = true;
+
+    // Inside renderWavefront(), after updating plane geometry:
+wavefrontlabels.forEach(label => {
+    const amp = stateVector[label.stateIndex];
+    const mag = amp.mag();
+    const phase = amp.phase();
+    const time = animationTime * 2.0;
+
+    // Calculate the wave height exactly at the emitter point
+    // This makes the label bob up and down with its specific state intensity
+    const zPos = mag * Math.sin(-time + phase) * 1.5; 
+    
+    // Update sprite Y position (which is the vertical axis in our 3D scene)
+    label.sprite.position.y = zPos + 1.2; // Offset so it stays above the peak
+
+    // Optional: Highlight the "marked" state by making its label brighter/larger
+    if (mag > 0.5) {
+        label.sprite.material.opacity = 1.0;
+        label.sprite.scale.set(2.5, 1.25, 1);
+    } else {
+        label.sprite.material.opacity = 0.6;
+        label.sprite.scale.set(1.8, 0.9, 1);
+    }
+});
+                              
+    wavefront.renderer.render(wavefront.scene, wavefront.camera);
+}                                
 
         function initQSphere() {
             const container = document.getElementById('three-qsphere-container');
@@ -1272,6 +1449,7 @@
             requestAnimationFrame(animate);
             animationTime += 0.04;
             if (activeTab === 'corkscrew') renderCorkscrew();
+            if (activeTab === 'wavefront') renderWavefront();                    
             if (activeTab === 'qsphere') renderQSphere();
             if (activeTab === 'hinton') {
                 polytopeViews.forEach(view => {
