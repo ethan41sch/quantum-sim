@@ -980,7 +980,7 @@ function renderWavefront() {
             
             // 1. LOCALIZED GAUSSIAN DECAY
             // This prevents waves from the far left from stacking with waves on the far right.
-            const decay = Math.exp(-distSq * 0.28); 
+            const decay = Math.exp(-distSq * 0.45); 
             
             // 2. PHASE CALCULATION
             const angle = dist * 2.5 - t + amp.phase();
@@ -996,7 +996,7 @@ function renderWavefront() {
 
         // 4. NORMALIZED Z-AXIS
         // Sine gives us the ripple, netMag ensures it stays within a 2.0 unit range.
-        const z = Math.sin(netPhase) * netMag * 1.8; 
+        const z = Math.sin(netPhase) * netMag * 2.5; 
         positions[i + 2] = isNaN(z) ? 0 : z;
 
         // 5. INTERFERENCE COLORING
