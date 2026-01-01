@@ -883,17 +883,27 @@
              wavefront.controls.update();
 
              // Plane Setup
-             const segments = 128;
+             const segments = 256;
              wavefront.geometry = new THREE.PlaneGeometry(20, 20, segments, segments);
+             const count = wavefront.geometry.attributes.position.count;
+             wavefront.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));                   
              const material = new THREE.MeshPhongMaterial({
-               color: 0x38bdf8,
+               vertexColors: true,
                side: THREE.DoubleSide,
-               wireframe: true,
+               metalness: 0.9,
+               roughness: 0.1,
+               shininess: 100,
+               transparent: true,                 
+               wireframe: false,
+               flatShading: false,                 
                transparent: true,
-               opacity: 0.4,
+               opacity: 0.9,
                emissive: 0x0ea5e9,
                emissiveIntensity: 0.2
              });
+             const topLight = new THREE.DirectionalLight(0xffffff, 1.0);
+             topLight.position.set(0, 50, 0);
+             wavefront.scene.add(topLight);
 
              wavefront.mesh = new THREE.Mesh(wavefront.geometry, material);
              wavefront.mesh.rotation.x = -Math.PI / 2;
@@ -945,47 +955,67 @@
             }
     }
                         
-
 function renderWavefront() {
-    if (!wavefront.renderer || activeTab !== 'wavefront') return;
+    if (!wavefront.renderer || !wavefront.container || activeTab !== 'wavefront' || !stateVector) return;
 
     const positions = wavefront.geometry.attributes.position.array;
-    const time = animationTime * 2.0;
-    
-    // Map 32 states to a 4x8 grid for spatial emitters
+    const colors = wavefront.geometry.attributes.color.array;
+    const t = animationTime * 2.5;
 
     for (let i = 0; i < positions.length; i += 3) {
         const x = positions[i];
         const y = positions[i + 1];
-        let z = 0;
+        
+        let realSum = 0;
+        let imagSum = 0;
 
-        // Calculate interference from all 32 basis states
         for (let s = 0; s < STATES; s++) {
             const amp = stateVector[s];
-            if (amp.magSq() < 0.001) continue;
+            const mag = amp.mag();
+            if (mag < 0.001) continue;
 
             const coords = getEmitterCoords(s);
-                              
-            const ex = coords.x;
-            const ey = coords.y;
+            const distSq = (x - coords.x)**2 + (y - coords.y)**2;
+            const dist = Math.sqrt(distSq);
             
-            const dist = Math.sqrt((x - ex) ** 2 + (y - ey) ** 2);
-            const mag = amp.mag();
-            const phase = amp.phase();
-
-            // Wave equation: amplitude * sin(distance - time + initial_phase)
-            // Decay prevents the visual from becoming pure noise
-            const decay = Math.exp(-dist * 0.3);
-            z += mag * Math.sin(dist * 1.5 - time + phase) * decay;
+            // 1. LOCALIZED GAUSSIAN DECAY
+            // This prevents waves from the far left from stacking with waves on the far right.
+            const decay = Math.exp(-distSq * 0.28); 
+            
+            // 2. PHASE CALCULATION
+            const angle = dist * 2.5 - t + amp.phase();
+            
+            realSum += mag * Math.cos(angle) * decay;
+            imagSum += mag * Math.sin(angle) * decay;
         }
 
-        positions[i + 2] = z * 1.5; // Update Z-height
+        // 3. HEIGHT FIX: Calculate combined magnitude
+        // Instead of raw totalImag, we find the "resultant" of the complex interference.
+        const netMag = Math.sqrt(realSum * realSum + imagSum * imagSum);
+        const netPhase = Math.atan2(imagSum, realSum);
+
+        // 4. NORMALIZED Z-AXIS
+        // Sine gives us the ripple, netMag ensures it stays within a 2.0 unit range.
+        const z = Math.sin(netPhase) * netMag * 1.8; 
+        positions[i + 2] = isNaN(z) ? 0 : z;
+
+        // 5. INTERFERENCE COLORING
+        // Map the Net Phase to a Color (Constructive = Cyan, Destructive = Magenta/Red)
+        const hue = (netPhase + Math.PI) / (2 * Math.PI);
+        const color = new THREE.Color();
+        
+        // Lightness is driven by the net probability (netMag)
+        color.setHSL(0.5 + (hue * 0.3), 0.8, 0.1 + (netMag * 0.5));
+        
+        colors[i] = color.r;
+        colors[i+1] = color.g;
+        colors[i+2] = color.b;
     }
 
     wavefront.geometry.attributes.position.needsUpdate = true;
+    wavefront.geometry.attributes.color.needsUpdate = true;
 
-    // Inside renderWavefront(), after updating plane geometry:
-wavefrontlabels.forEach(label => {
+    wavefrontlabels.forEach(label => {
     const amp = stateVector[label.stateIndex];
     const mag = amp.mag();
     const phase = amp.phase();
@@ -1009,7 +1039,7 @@ wavefrontlabels.forEach(label => {
 });
                               
     wavefront.renderer.render(wavefront.scene, wavefront.camera);
-}                                
+}
 
         function initQSphere() {
             const container = document.getElementById('three-qsphere-container');
