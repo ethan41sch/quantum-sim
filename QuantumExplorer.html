@@ -206,6 +206,16 @@
             animation: slideIn 0.3s ease-out;
         }
 
+        #info-panel {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        #info-panel.visible {
+          display: block;
+          transform: translateY(0);
+          opacity: 1;
+        }
+
         @keyframes slideIn {
             from {
                 opacity: 0;
@@ -221,7 +231,23 @@
 </head>
 
 <body class="p-2 sm:p-4">
-    <div id="app" class="max-w-[1600px] mx-auto">
+  <div id="app" class="max-w-[1600px] mx-auto">
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div id="info-panel" class="hidden mb-4 w-80 bg-slate-800 border border-sky-500 rounded-xl shadow-2xl p-4 overflow-y-auto max-h-[60vh] transition-all duration-300">
+        <div class="flex justify-between items-center mb-3 border-b border-slate-700 pb-2">
+            <h3 class="text-sky-400 font-bold uppercase text-xs">View Insights</h3>
+            <button onclick="toggleInfoPanel()" class="text-slate-400 hover:text-white">&times;</button>
+        </div>
+        <div id="info-panel-content" class="text-xs text-slate-200 leading-relaxed">
+            </div>
+    </div>
+    
+    <button onclick="toggleInfoPanel()" class="bg-sky-600 hover:bg-sky-500 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    </button>
+</div>
         <header class="mb-4 border-b border-slate-700 pb-2 flex flex-wrap justify-between items-center gap-4">
             <div>
                 <h1 class="text-xl font-bold text-sky-400">Quantum Multi-View Simulator</h1>
@@ -500,6 +526,307 @@
                 runSimulation();
             }, 50);
         }
+
+function toggleInfoPanel() {
+    const panel = document.getElementById('info-panel');
+    const isHidden = panel.classList.contains('hidden');
+    
+    if (isHidden) {
+        // Update content before showing
+        document.getElementById('info-panel-content').innerHTML = getInfoText(activeTab);
+        panel.classList.remove('hidden');
+        // Small delay to allow CSS transition to trigger
+        setTimeout(() => panel.classList.add('visible'), 10);
+    } else {
+        panel.classList.remove('visible');
+        setTimeout(() => panel.classList.add('hidden'), 300);
+    }
+}
+
+function getInfoText(view) {
+    const infoMap = {
+        'circuit': `
+<div style="font-family: sans-serif; line-height: 1.6; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
+    <h2 style="margin-top: 0;">Phase Disk Guide</h2>
+    <p>In a 5-qubit system, there are 32 possible states (from |00000&gt; to |11111&gt;). Each phase disk represents the <strong>complex amplitude</strong> of one of those states. Here is what you should look for:</p>
+    
+    <ol>
+        <li style="margin-bottom: 15px;">
+            <strong>Magnitude and Probability (The Fill Level):</strong>
+            <br>
+            The amount of color filling the disk represents the <strong>magnitude</strong> of the amplitude. However, remember that the probability of the system collapsing into that specific state is the <em>square</em> of that fill level (P = |a|^2). If all disks are empty except one, the system is in a "basis state." If many disks are partially filled, the system is in a <strong>superposition</strong>.
+        </li>
+
+        <li style="margin-bottom: 15px;">
+            <strong>Relative Phase (The Dial Direction):</strong>
+            <br>
+            The line indicates the phase angle (&theta;) in the complex plane. Watch how these angles change relative to one another after a gate is applied. In quantum algorithms, the phase doesn't change the probability of a single disk, but it determines how that state will <strong>interfere</strong> with others when the next operation occurs.
+        </li>
+
+        <li style="margin-bottom: 15px;">
+            <strong>Constructive vs. Destructive Interference:</strong>
+            <br>
+            This is the core of quantum computation. When gates (like the Hadamard or QFT) are applied, states with <strong>pointing-in-the-same-direction</strong> phases will reinforce each other (constructive), increasing their fill level. States with <strong>opposite</strong> phases (180° apart) will cancel each other out (destructive), causing their fill levels to shrink or disappear.
+        </li>
+
+        <li style="margin-bottom: 15px;">
+            <strong>Entanglement Patterns:</strong>
+            <br>
+            Look for correlations between disks. If the system is <strong>entangled</strong>, you will notice that only specific, separated states have magnitude. For example, in a Bell State, you might see |00000&gt; and |11111&gt; fully filled while all 30 other disks remain empty. This indicates that the qubits no longer have independent states.
+        </li>
+
+        <li style="margin-bottom: 15px;">
+            <strong>Global Phase Shifts:</strong>
+            <br>
+            If you apply an operation that rotates <em>every</em> disk's dial by the same amount (e.g., all dials move 90° clockwise), notice that the "picture" remains functionally the same. This is a <strong>global phase</strong>. While it looks different visually, it is physically undetectable upon measurement, as the <em>relative</em> difference between the disks hasn't changed.
+        </li>
+    </ol>
+    
+    <p style="font-style: italic; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">
+        Tip: Watch for "symmetry" in the 32 disks. Algorithms like Grover's Search or Shor's Algorithm create distinct geometric patterns in the phases before "collapsing" the magnitude into the correct answer.
+    </p>
+</div>`,
+
+
+
+            
+            'corkscrew': `
+<div>
+  <h2>3D Corkscrew Wave Guide</h2>
+    <p>As you navigate the 3D space of these 2^5 (32) basis states, use this guide to interpret the interaction between individual state "corkscrews" and the resulting composite wave.</p>
+
+    <ol style="padding-left: 20px;">
+        <li style="margin-bottom: 15px;">
+            <strong>1. Phase Alignment and Interference Patterns</strong>
+            Observe the "phase lines" at the end of each corkscrew. When multiple lines point in the same direction, they are <em>in phase</em>, leading to <strong>constructive interference</strong> and a larger amplitude in the composite wave. If phase lines point in opposite directions, look for the composite wave to flatten, signifying <strong>destructive interference</strong>.
+            <div class="technical-note">This is the fundamental mechanism of quantum algorithms: amplifying the correct answer while suppressing wrong ones.</div>
+        </li>
+
+        <li style="margin-bottom: 15px;">
+            <strong>2. Helicity and Magnitude Distribution</strong>
+            Orient the view to look directly "down the barrel" of the corkscrews. The radius of each screw represents the probability amplitude of that specific state. A system in a uniform superposition will show 32 screws of equal thickness, while a system collapsing toward a solution will show one or two screws dominating the volume.
+        </li>
+
+        <li style="margin-bottom: 15px;">
+            <strong>3. Global vs. Relative Phase Shifts</strong>
+            Rotate the entire view. If you apply an operation that shifts every phase line by the same angle, notice that the <em>shape</em> of the composite wave remains unchanged. However, if only a subset of states (like those starting with |1>) shift, the composite wave's geometry will distort.
+            <div class="technical-note">This helps you visualize why "Global Phase" is physically unobservable, while "Relative Phase" drives the computation.</div>
+        </li>
+
+        <li style="margin-bottom: 15px;">
+            <strong>4. Entanglement Signatures</strong>
+            Look for correlations in the wave behavior. In an entangled state, you cannot change the phase or amplitude of one corkscrew (e.g., state |00000>) without seeing a synchronized transformation in another (e.g., |11111>). If the corkscrews appear to act in isolated groups, the qubits may be partially or fully decohered/unentangled.
+        </li>
+
+        <li style="margin-bottom: 15px;">
+            <strong>5. The "Composite Envelope" Geometry</strong>
+            Switch your focus to the composite wave. Its peaks and valleys represent the collective state of the computer. In a successful computation, the composite wave should show a distinct "surge" or high-energy peak corresponding to the specific binary state that solves your problem.
+        </li>
+    </ul>
+
+    <p><em>Pro Tip: Try aligning your view parallel to the phase lines to see which states are currently contributing most effectively to the total probability density.</em></p>
+</div>`,
+
+
+        
+        'wavefront': `
+<div>
+    <h2 style="margin-top: 0;">Wave Front Guide</h2>
+    <p>This visualization represents the <strong>32 possible basis states</strong> (2^5) of your quantum system. Each point on the grid corresponds to a specific bitstring (from |00000> to |11111>). Use the following guide to interpret the "wave" interference patterns you observe.</p>
+    
+    <hr style="border: 0; border-top: 1px solid #ddd; margin: 20px 0;">
+
+    <h3>5 Things to Look For</h3>
+    
+    <ol style="padding-left: 20px;">
+        <li style="margin-bottom: 15px;">
+            <strong>Constructive vs. Destructive Interference:</strong> 
+            Watch for areas where wave peaks align and amplify (Constructive) versus areas where the grid remains flat or "hollowed out" (Destructive). In quantum algorithms, we use operations like the Hadamard gate to create these patterns, pushing the system's probability toward the correct solution.
+        </li>
+        <li style="margin-bottom: 15px;">
+            <strong>Global vs. Relative Phase:</strong> 
+            Rotate the view to look at the "height" and "tilt" of the generators. If all generators are oscillating in unison, they share a <em>global phase</em>. If they are out of sync, the <em>relative phase</em> differences are what determine how these states will interfere when you apply the next gate.
+        </li>
+        <li style="margin-bottom: 15px;">
+            <strong>State Entanglement:</strong> 
+            Look for correlations across the grid. If the wave activity is localized to two distant "peaks" (e.g., at |00000> and |11111>) with nothing in between, you are likely viewing a <em>Bell State</em> or <em>GHZ State</em>, indicating high entanglement where the qubits are no longer independent.
+        </li>
+        <li style="margin-bottom: 15px;">
+            <strong>Probability Density:</strong> 
+            The amplitude (magnitude) of the wave at any grid point represents the likelihood of the system collapsing into that state upon measurement. A single high-frequency tower suggests a <em>deterministic</em> state, while a broad, low-level ripple across the whole grid suggests <em>superposition</em>.
+        </li>
+        <li style="margin-bottom: 15px;">
+            <strong>Smoothing Effects on Symmetry:</strong> 
+            Toggle between <strong>Gaussian</strong> and <strong>Linear</strong> smoothing. Gaussian smoothing often reveals the "neighborhood" of a state, helping you see if the algorithm is "close" to a solution in terms of Hamming distance. Linear smoothing can make it easier to spot sharp transitions and phase boundaries.
+        </li>
+    </ol>
+
+    <div style="padding: 15px; border-radius: 8px; margin-top: 20px;">
+        <h4 style="margin-top: 0;">Pro-Tip for Viewers</h4>
+        <p style="margin-bottom: 0; font-size: 0.9em;">
+            Try orienting the view to a <strong>Top-Down (Bird's Eye) perspective</strong> to identify patterns of symmetry in the 5-qubit architecture. Then, switch to a <strong>Side-Profile view</strong> to better gauge the comparative amplitudes of different computational paths.
+        </p>
+    </div>
+</div>`,
+
+
+            
+          'qsphere': `
+<div style="padding: 20px; font-family: sans-serif; line-height: 1.6; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+  <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.25rem;">Q-Sphere* Guide</h3>
+   <p>This is a modified version of the Qiskit Q-Sphere<p>
+    
+    <ol style="padding-left: 20px; margin: 0;">
+        <li style="margin-bottom: 12px;">
+            <strong>Interference Patterns (Distance and Motion):</strong> 
+            Watch the nodes move toward or away from the center. <strong>Constructive interference</strong> is visible when a node moves outward toward the surface, indicating an increase in probability. <strong>Destructive interference</strong> occurs when a node retreats toward the center (0,0,0), signaling that different paths in the calculation have canceled each other out.
+        </li>
+        <li style="margin-bottom: 12px;">
+            <strong>Phase Relationships (Color):</strong> 
+            The color of each node and its connecting vector represents its quantum phase. When performing operations like the Hadamard (H) or Phase (Z) gates, look for color shifts. States with the same color are "in phase," while states with opposite colors (on the color wheel) are "out of phase," which is the precursor to destructive interference.
+        </li>
+        <li style="margin-bottom: 12px;">
+            <strong>Computational Weight (Node Size):</strong> 
+            The size of each node represents its <strong>Hamming Weight</strong>—the number of '1's in that state's binary string. Smaller nodes represent states closer to |000...0>, while larger nodes represent states with more active qubits. This helps you identify which specific "types" of states are being targeted by an algorithm.
+        </li>
+        <li style="margin-bottom: 12px;">
+            <strong>State Evolution (Vector Length):</strong> 
+            The line connecting the center to the node acts as a visual "gauge." Since the radius is mapped to probability, a full-length vector indicates a <strong>basis state</strong> (100% certainty). A cluster of short vectors indicates <strong>superposition</strong>, where the system’s "certainty" is spread across many different possibilities simultaneously.
+        </li>
+        <li style="margin-bottom: 12px;">
+            <strong>Symmetry and Entanglement:</strong> 
+            Look for patterns in how nodes are distributed across the sphere. In non-entangled states (like a simple H-gate on all qubits), nodes will appear symmetrically. When <strong>entanglement</strong> is introduced (via CNOT gates), you will notice specific pairs or groups of nodes moving in sync while others remain at the center, revealing the hidden correlations between qubits.
+        </li>
+    </ol>
+</div>`,
+
+
+
+        'hinton': `
+<div style="font-family: sans-serif; line-height: 1.6; padding: 15px; border: 1px solid #ccc; border-radius: 8px;">
+  <h3 style="margin-top: 0;">Hinton Density Matrix and Polytope Guide</h3>
+  <p style="font-size: 0.95em;">Use this guide to interpret the relationship between the Hinton Density Matrix and the individual qubit polytopes.</p>
+  
+  <ol style="padding-left: 20px;">
+    <li style="margin-bottom: 15px;">
+      <strong>Off-Diagonal Magnitudes (Coherence & Phase):</strong> 
+      In the Hinton Plot, look at the squares located off the main diagonal. These represent the "coherences" between basis states. Large off-diagonal elements indicate that the qubits are in a superposition. The size of the square represents the magnitude, while the visual style (often color or shading) represents the phase. Watching these change during a gate operation reveals how <strong>constructive and destructive interference</strong> is being "steered" to favor specific outcomes.
+    </li>
+    
+    <li style="margin-bottom: 15px;">
+      <strong>The Diagonal Distribution (Measurement Probability):</strong> 
+      The squares along the main diagonal represent the population of each computational basis state ($|00000\rangle$ to $|11111\rangle$). The larger the square on the diagonal, the higher the probability that the system will collapse into that specific state upon measurement. If you see many small squares, the system is highly diffused; a single large square indicates the algorithm has successfully used interference to converge on a solution.
+    </li>
+    
+    <li style="margin-bottom: 15px;">
+      <strong>Polytope Purity vs. Mixedness:</strong> 
+      Observe the vector within each qubit’s polytope. If the vector reaches the surface (the "skin") of the polytope, the qubit is in a <strong>pure state</strong>. If the vector shrinks toward the center, the qubit is in a <strong>mixed state</strong>. In a density matrix view, a loss of purity often corresponds to the "blurring" or disappearance of off-diagonal coherence squares, indicating interaction with the environment or noise (decoherence).
+    </li>
+    
+    <li style="margin-bottom: 15px;">
+      <strong>Entanglement Signatures:</strong> 
+      Compare the polytopes to the density matrix. If the individual qubit polytopes show vectors that have shrunk toward the center (appearing "mixed"), but the overall Hinton Plot shows a highly structured, coherent state, this is a hallmark of <strong>entanglement</strong>. It indicates that information is not stored in individual qubits, but in the correlations between them, which are visible only in the full system matrix.
+    </li>
+    
+    <li style="margin-bottom: 15px;">
+      <strong>Phase Rotations and Symmetry:</strong> 
+      Look for patterns or symmetries in the Hinton Plot. Quantum algorithms like Grover's or the Quantum Fourier Transform (QFT) create distinct geometric patterns of phase shifts. By watching the phases (the "colors" or "angles" within the Hinton squares) alongside the rotations on the individual polytopes, you can see how local operations on a single qubit can rotate the global state vector through the high-dimensional Hilbert space.
+    </li>
+  </ol>
+</div>`,
+
+        'matrix': `
+<div style="font-family: sans-serif; line-height: 1.6; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
+  <h3 style="margin-top: 0;">Quantum State and Operator Matrices Guide</h3>
+  <p>When viewing a 5-qubit system ($2^5 = 32$ possible states), use the following guide to interpret how gates transform the state vector through interference and entanglement.</p>
+  
+  <ol style="padding-left: 20px;">
+    <li style="margin-bottom: 15px;">
+      <strong>Identify Constructive and Destructive Interference:</strong>
+      Look at the transition between the input and output state vectors. If a gate (like the Hadamard) causes multiple computational basis states to have non-zero amplitudes that later "collapse" back into a single state, you are witnessing interference. 
+      <ul style="margin-top: 5px;">
+        <li><strong>Constructive:</strong> Amplitudes with the same sign/phase add together to increase the probability of a state.</li>
+        <li><strong>Destructive:</strong> Amplitudes with opposite phases ($1$ and $-1$) cancel each other out, resulting in a zero probability for that outcome.</li>
+      </ul>
+    </li>
+
+    <li style="margin-bottom: 15px;">
+      <strong>Matrix Sparsity and Computational Path:</strong>
+      Examine the gate matrix for its density. A <strong>sparse matrix</strong> (mostly zeros) indicates a gate that performs simple permutations or phase shifts (like X or Z). A <strong>dense matrix</strong> (many non-zero entries) represents a gate that creates superpositions. In the view, the columns of the gate matrix show exactly how each input basis state is redistributed across the 32 possible output states.
+    </li>
+
+    <li style="margin-bottom: 15px;">
+      <strong>Phase Rotations and Complex Amplitudes:</strong>
+      Quantum states are not just probabilities; they have phases. Look for complex numbers or negative signs in the state vector. These do not change the <em>probability</em> of measuring a state (which is the square of the magnitude), but they are the "engines" of quantum algorithms. These phases determine how the state will interfere with others in subsequent gate operations.
+    </li>
+
+    <li style="margin-bottom: 15px;">
+      <strong>Detecting Entanglement via State Separability:</strong>
+      Observe if the 32-element state vector can be described as a simple combination of individual qubit states. If a gate matrix (like a CNOT) creates a state where the outcome of one qubit is strictly dependent on another (e.g., the Bell State $\frac{|00\rangle + |11\rangle}{\sqrt{2}}$), you will see non-zero amplitudes only in specific, correlated indices. If you cannot "factor out" the qubits, the system is entangled.
+    </li>
+
+    <li style="margin-bottom: 15px;">
+      <strong>Unitary Preservation (Normalization):</strong>
+      Note that despite the complexity of the gate matrix, the total "energy" of the state vector remains constant. The sum of the squares of the magnitudes of all 32 amplitudes must always equal 1. If you see the amplitudes shifting significantly but the total probability remains 1, you are observing a <strong>Unitary Transformation</strong>, the fundamental requirement for all quantum logic gates.
+    </li>
+  </ol>
+</div>`,
+
+   'entanglement': `
+<div style="font-family: sans-serif; line-height: 1.6; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
+  <h3 style="margin-top: 0;">Entanglement Guide</h3>
+  <p style="margin-bottom: 15px;">Use this view to track qubits are entangled or related.</p>
+</div>  
+`,
+
+
+        'history': `
+<div style="font-family: sans-serif; line-height: 1.6; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
+  <h3 style="margin-top: 0;">Amplitude History Guide</h3>
+  <p style="margin-bottom: 15px;">Use this view to track how quantum gates transform information across all 32 possible states ($2^{5}$ qubits). Observe the following patterns to understand the "logic" of the quantum system:</p>
+  
+  <ol style="padding-left: 20px;">
+    <li style="margin-bottom: 15px;">
+      <strong>Constructive and Destructive Interference:</strong> 
+      Watch how the bars change as you apply gates. When bars grow taller, the amplitudes are interfering <strong>constructively</strong>, increasing the probability of that state. When bars shrink or disappear, <strong>destructive</strong> interference is occurring, where the "phases" (represented here by the direction of the bars) cancel each other out.
+    </li>
+    
+    <li style="margin-bottom: 15px;">
+      <strong>Phase Transitions (Bar Direction):</strong> 
+      Pay close attention to bars pointing downward. In quantum mechanics, amplitudes can be negative (or complex). A gate that flips a bar from upward to downward has applied a <strong>phase shift</strong>. While this doesn't change the immediate probability of that single state, it fundamentally changes how that state will interfere with others in the next step.
+    </li>
+    
+    <li style="margin-bottom: 15px;">
+      <strong>Superposition Breadth:</strong> 
+      Look at how many of the 32 states have active bars at any given time. A single tall bar represents a <strong>basis state</strong> (classical-like certainty). Many short bars spread across the chart indicate the system is in a <strong>superposition</strong>, holding multiple values simultaneously.
+    </li>
+    
+    <li style="margin-bottom: 15px;">
+      <strong>Amplitude Distribution (Probability Density):</strong> 
+      The total "weight" of the system is always conserved. If one bar goes down, others must go up. By looking at the <strong>amplitude</strong> (the magnitude of the bar, regardless of direction), you are seeing the square root of the probability. The taller the bar, the more likely the computer is to "collapse" into that specific state upon measurement.
+    </li>
+    
+    <li style="margin-bottom: 15px;">
+      <strong>Gate Impact Reversibility:</strong> 
+      Compare the charts before and after a gate is applied. Quantum gates are <strong>unitary</strong>, meaning they are reversible. If a gate spreads one state into many (like a Hadamard gate), applying that same gate again (or its inverse) will often "uncompute" the spread and interfere the amplitudes back into a single, certain state.
+    </li>
+  </ol>
+</div>`
+
+    };
+
+    return infoMap[view] || "<p>Explore the circuit to see quantum logic in action.</p>";
+}
+
+// Update the info panel automatically if it's open when switching tabs
+const originalSwitchTab = switchTab;
+switchTab = function(tabId) {
+    originalSwitchTab(tabId);
+    const panel = document.getElementById('info-panel');
+    if (!panel.classList.contains('hidden')) {
+        document.getElementById('info-panel-content').innerHTML = getInfoText(tabId);
+    }
+};      
 
         function runSimulation() {
             stateVector = Array(STATES).fill(0).map(() => new Complex(0, 0));
