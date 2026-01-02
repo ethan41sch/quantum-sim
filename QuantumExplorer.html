@@ -469,7 +469,7 @@
         let stateHistory = [];
         let corkscrew = { scene: null, camera: null, renderer: null, controls: null, lines: [], labels: [], needles: [], compositeLine: null };
         let wavefront = { scene: null, camera: null, renderer: null, controls: null, mesh: null, geometry: null, container: null };
-        let qsphere = { scene: null, camera: null, renderer: null, controls: null, nodes: [], labels: [] };
+      let qsphere = { scene: null, camera: null, renderer: null, controls: null, nodes: [], labels: [], vectors: [] };
         let entanglementView = { scene: null, camera: null, renderer: null, controls: null, nodes: [], edges: [] };
         let polytopeViews = [];
         let wavefrontlabels = [];
@@ -1094,10 +1094,21 @@ function renderWavefront() {
                 qsphere.scene.add(node);
                 qsphere.nodes.push(node);
 
-                const label = createTextSprite(`|${i.toString(2).padStart(QUBITS, '0')}⟩`);
-                label.position.copy(node.position).multiplyScalar(1.25);
+                const label = createTextSprite(`|${i.toString(2).padStart(QUBITS, '0')}⟩`, color='#ffffff');
+                label.scale.set(0.75, 0.5, 0.75);
+                label.position.copy(node.position).multiplyScalar(1.075);
                 qsphere.scene.add(label);
                 qsphere.labels.push(label);
+                const points = [new THREE.Vector3(0, 0, 0), node.position.clone()];
+                const lineGeom = new THREE.BufferGeometry().setFromPoints(points);
+                const vectorLine = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ 
+                       color: 0x38bdf8, 
+                       transparent: true, 
+                       opacity: 0.3 
+                 }));
+    
+                 qsphere.scene.add(vectorLine);
+                 qsphere.vectors.push(vectorLine);                
             }
         }
 
@@ -1107,17 +1118,44 @@ function renderWavefront() {
                 const prob = amp.magSq();
                 const node = qsphere.nodes[i];
                 const label = qsphere.labels[i];
+                const vector = qsphere.vectors[i];
                 if (!node || !label) return;
 
                 if (prob < 0.001) {
                     node.scale.setScalar(0.4);
                     node.material.color.setHex(0x1e293b);
+                    node.visible = false;
                     label.visible = false;
+                    vector.visible = false;
+                    node.position.set(0,0,0);       
                 }
                 else {
                     label.visible = true;
-                    node.scale.setScalar(0.5 + Math.sqrt(prob) * 3.5);
+                    vector.visible = true;
+                    const hamming = i.toString(2).split('1').length - 1;
+                    const phi = (hamming / QUBITS) * Math.PI;
+                    const theta = (i / STATES) * Math.PI * 2;
+
+                    const dynamicRadius = 0.5 + (prob * 3.5);
+                    const newPos = new THREE.Vector3(
+                        dynamicRadius * Math.sin(phi) * Math.cos(theta),
+                        dynamicRadius * Math.cos(phi),
+                        dynamicRadius * Math.sin(phi) * Math.sin(theta)
+                    );
+
+                    node.position.copy(newPos);
+                    node.visible = true;
+
+                    const baseSize = 0.5 + (hamming / QUBITS) * 1.5; 
+                    const importanceScale = baseSize * (0.8 + Math.sqrt(prob)); 
+
+                    node.scale.setScalar(importanceScale * 0.75);
+                    //node.scale.setScalar(0.5 + Math.sqrt(prob) * 1.5);
                     node.material.color.setHSL(amp.phase() / (2 * Math.PI) + 0.5, 0.8, 0.5);
+                    label.position.copy(newPos).multiplyScalar(1.075);
+                    vector.geometry.setFromPoints([new THREE.Vector3(0, 0, 0), newPos]);
+                    //vector.material.color.setHSL(amp.phase() / (2 * Math.PI) + 0.5, 0.8, 0.5);
+                    vector.material.opacity = Math.max(0.2, prob);
                 }
             });
             qsphere.renderer.render(qsphere.scene, qsphere.camera);
