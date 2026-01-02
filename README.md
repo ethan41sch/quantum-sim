@@ -34,8 +34,16 @@ how different states are "out of phase". In this case, they are
   <img src="screenshots/waveview2.png" width="75%">
 </p>
 
+This shows the state of the system as wave fronts (like water waves).
+
+<p align="center">
+  <img src="screenshots/wavefront.png" width="75%">
+</p>
+
 This screenshot shows the Q-Sphere view, similar to the IBM Qiskit
-Q-Sphere.
+Q-Sphere. The probability is used to position the node from the
+center of the Q-sphere. The color indicates the phase, and the size
+of the node is based on the number of 1 bits.
 
 <p align="center">
   <img src="screenshots/qsphere.png" width="75%">
