@@ -983,10 +983,16 @@ function renderWavefront() {
             const decay = Math.exp(-distSq * 0.45); 
             
             // 2. PHASE CALCULATION
-            const angle = dist * 2.5 - t + amp.phase();
+            //const angle = dist * 2.5 - t + amp.phase();
+
+            const phaseAtPoint = dist * 2.2 - t + amp.phase();
+            const weight = amp.mag() * Math.exp(-dist * 0.4); // Gaussian falloff
+    
+            realSum += Math.cos(phaseAtPoint) * weight;
+            imagSum += Math.sin(phaseAtPoint) * weight;          
             
-            realSum += mag * Math.cos(angle) * decay;
-            imagSum += mag * Math.sin(angle) * decay;
+            //realSum += mag * Math.cos(angle) * decay;
+            //imagSum += mag * Math.sin(angle) * decay;
         }
 
         // 3. HEIGHT FIX: Calculate combined magnitude
@@ -1001,11 +1007,11 @@ function renderWavefront() {
 
         // 5. INTERFERENCE COLORING
         // Map the Net Phase to a Color (Constructive = Cyan, Destructive = Magenta/Red)
-        const hue = (netPhase + Math.PI) / (2 * Math.PI);
+        const hue = (netPhase + Math.PI) / (2 * Math.PI) * 0.15;
         const color = new THREE.Color();
         
         // Lightness is driven by the net probability (netMag)
-        color.setHSL(0.5 + (hue * 0.3), 0.8, 0.1 + (netMag * 0.5));
+        color.setHSL(0.5 + (hue * 0.3), 0.9, 0.1 + (netMag * 0.5));
         
         colors[i] = color.r;
         colors[i+1] = color.g;
