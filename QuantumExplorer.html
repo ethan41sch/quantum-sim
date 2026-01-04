@@ -259,7 +259,10 @@
                     <button onclick="switchTab('qsphere')" id="tab-qsphere"
                         class="tab-btn px-2 py-1 transition">Q-Sphere</button>
                     <button onclick="switchTab('hinton')" id="tab-hinton" class="tab-btn px-2 py-1 transition">Hinton &
-                        Polytopes</button>
+                      Polytopes</button>
+                    <button onclick="switchTab('sankey')" id="tab-sankey"
+                        class="tab-btn px-2 py-1 transition">Sankey</button>
+
                     <button onclick="switchTab('entanglement')" id="tab-entanglement"
                         class="tab-btn px-2 py-1 transition">Entanglement</button>
                     <button onclick="switchTab('matrix')" id="tab-matrix"
@@ -402,6 +405,16 @@
                             </div>
                         </div>
                     </div>
+
+                    <div id="view-sankey" class="view-panel hidden relative flex flex-col items-center">
+                      <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Amplitude Flow (Sankey)</h3>
+                      <div id="sankey-container" class="w-full overflow-x-auto bg-slate-950 rounded-xl p-4">
+                        <svg id="sankey-svg" width="800" height="400" style="min-width: 600px;"></svg>
+                      </div>
+                      <p class="text-[10px] text-slate-500 mt-2 italic">Visualizing how state amplitudes transition through the current gate.</p>
+                    </div>
+
+                    
                     <div id="view-entanglement" class="view-panel hidden relative">
                         <div class="flex flex-col items-center">
                             <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase text-center">Bipartite
@@ -498,6 +511,7 @@
       let qsphere = { scene: null, camera: null, renderer: null, controls: null, nodes: [], labels: [], vectors: [] };
         let entanglementView = { scene: null, camera: null, renderer: null, controls: null, nodes: [], edges: [] };
         let polytopeViews = [];
+        let sankeyView = { svg: null, width: 800, height: 400 };
         let wavefrontlabels = [];
 
         const WF_GRID_X = 8;
@@ -521,6 +535,7 @@
                 if (tabId === 'wavefront') initWavefront();
                 if (tabId === 'qsphere') initQSphere();
                 if (tabId === 'hinton') { initPolytopeView(); initHintonLabels(); }
+                if (tabId === 'sankey') initSankey();
                 if (tabId === 'entanglement') initEntanglementView();
                 if (tabId === 'history') updateHistoryView();
                 runSimulation();
@@ -837,7 +852,8 @@ switchTab = function(tabId) {
             // Push initial state
             stateHistory.push({
                 state: [...stateVector], // copy
-                gate: null
+                gate: null,
+                gateMatrix: null
             });
 
             const INV_SQRT2 = 1 / Math.sqrt(2);
@@ -857,6 +873,7 @@ switchTab = function(tabId) {
                     lastMatrix = Array(STATES).fill(0).map(() => Array(STATES).fill(new Complex(0, 0)));
                     lastGateInfo = `${gate.type} on Q${gate.target}`;
                 }
+                gateMatrix = null;
 
                 for (let i = 0; i < STATES; i++) {
                     const amp = stateVector[i];
@@ -961,7 +978,9 @@ switchTab = function(tabId) {
             updatePolytopeView();
             updateHintonView();
             updateEntanglementGraph();
+            updateSankey();
             updateInterpretation(lastGateInfo);
+                                                                                      
             if (activeTab === 'history') updateHistoryView();
 
             const list = document.getElementById('probabilities-list');
@@ -1570,19 +1589,150 @@ function renderWavefront() {
             }
         }
 
-        function updateViews(lastMatrix, lastGateInfo) {
+      function updateViews(lastMatrix, lastGateInfo) {
             if (activeTab === 'history') updateHistoryView();
             updateCircuitView();
             updateMatrixDisplay(lastMatrix, lastGateInfo);
             updateVectorDisplay();
             updatePolytopeView();
             updateHintonView();
+            updateSankey();
             updateEntanglementGraph();
             updateInterpretation(lastGateInfo);
             const list = document.getElementById('probabilities-list');
             if (list) list.innerHTML = stateVector.map((amp, i) => amp.magSq() > 0.001 ? `<div class="p-1 text-sky-400 font-bold border-b border-slate-800">|${i.toString(2).padStart(QUBITS, '0')}⟩ ${(amp.magSq() * 100).toFixed(1)}%</div>` : '').join('');
+                                }
+
+        function initSankey() {
+           sankeyView.svg = document.getElementById('sankey-svg');
+           updateSankey();
         }
 
+function updateSankey() {
+    if (activeTab !== 'sankey' || !sankeyView.svg) return;
+    
+    const svg = sankeyView.svg;
+    svg.innerHTML = ''; 
+    const w = sankeyView.width;
+    const h = sankeyView.height;
+    const padding = 50;
+    
+    // Step 0 has no "flow" from a previous gate, so we look at the transition 
+    // leading into the currentStep.
+    const prevEntry = stateHistory[currentStep - 1];
+    const currEntry = stateHistory[currentStep];
+    if (!prevEntry || !currEntry) {
+        // Fallback for Step 0: Draw initial state nodes only
+        drawInitialStateNodes(svg, stateHistory[0].state, padding, w, h);
+        return;
+    }
+
+    const prevState = prevEntry.state; // Access the .state array
+    const currState = currEntry.state;
+    const nodeWidth = 40;
+    const stateHeight = (h - padding * 2) / STATES;
+
+    // 1. Draw Nodes
+    for (let i = 0; i < STATES; i++) {
+        const y = padding + i * stateHeight;
+        const leftAmp = prevState[i].mag();
+        const rightAmp = currState[i].mag();
+
+        if (leftAmp > 0.01) {
+            drawRect(svg, padding, y, nodeWidth, stateHeight - 2, getPhaseColor(prevState[i]), 0.8);
+            drawText(svg, padding - 35, y + stateHeight/2, `|${i.toString(2).padStart(QUBITS, '0')}⟩`, '8px');
+        }
+        if (rightAmp > 0.01) {
+            drawRect(svg, w - padding - nodeWidth, y, nodeWidth, stateHeight - 2, getPhaseColor(currState[i]), 0.8);
+            drawText(svg, w - padding + 5, y + stateHeight/2, `|${i.toString(2).padStart(QUBITS, '0')}⟩`, '8px');
+        }
+    }
+
+    // 2. Draw Flows using the Matrix
+    const gateObj = circuit[currentStep - 1];
+    if (gateObj) {
+        const matrix = getGateMatrix(gateObj);
+        for (let i = 0; i < STATES; i++) { // input index
+            for (let j = 0; j < STATES; j++) { // output index
+                // Flow = matrix element * input amplitude
+                const transitionAmp = matrix[j][i].mul(prevState[i]);
+                const weight = transitionAmp.mag();
+                if (weight > 0.01) {
+                    const x1 = padding + nodeWidth;
+                    const x2 = w - padding - nodeWidth;
+                    const y1 = padding + i * stateHeight + (stateHeight / 2);
+                    const y2 = padding + j * stateHeight + (stateHeight / 2);
+
+                    console.log(i.toString(2).padStart(QUBITS,'0'),
+                                j.toString(2).padStart(QUBITS,'0'),
+                                (x1,y1),(x2,y2));
+                    
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", `M ${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}`);
+                    path.setAttribute("stroke", getPhaseColor(transitionAmp));
+                    let width = Math.max(1, weight * 25);
+                    width = width ** 1.25;
+                    path.setAttribute("stroke-width", width);
+                    path.setAttribute("fill", "none");
+                    path.setAttribute("opacity", "0.4");
+                    svg.appendChild(path);
+                }
+            }
+        }
+    }
+}
+
+      function getPhaseColor(c) {
+          const hue = (c.phase() / (2 * Math.PI) * 360) + 180;
+          return `hsl(${hue}, 70%, 60%)`;
+      }
+
+function drawInitialStateNodes(svg, state, padding, w, h) {
+    const stateHeight = (h - padding * 2) / STATES; // Fixed height per state
+    
+    state.forEach((amp, i) => {
+        // Only draw the visual "block" if there is amplitude
+        if (amp.mag() > 0.01) {
+            // Use the index 'i' to determine Y, ensuring |10000> (index 16) 
+            // is always midway down
+            const yPos = padding + (i * stateHeight);
+            
+            drawRect(svg, padding, yPos, 40, stateHeight - 2, getPhaseColor(amp), 0.8);
+            
+            // Draw the label at the same fixed Y position
+            drawText(svg, padding - 5, yPos + stateHeight/2, 
+                     `|${i.toString(2).padStart(QUBITS, '0')}⟩`, '8px', 'end');
+        }
+    });
+}      
+
+function drawInitialStateNodes_old(svg, state, padding, w, h) {
+    const stateHeight = (h - padding * 2) / STATES;
+    state.forEach((amp, i) => {
+        if (amp.mag() > 0.01) {
+            drawRect(svg, padding, padding + i * stateHeight, 40, stateHeight - 2, getPhaseColor(amp), 0.8);
+            drawText(svg, padding - 35, padding + i * stateHeight + stateHeight/2, `|${i.toString(2).padStart(QUBITS, '0')}⟩`, '8px');
+        }
+    });
+}      
+                                          
+function drawRect(svg, x, y, w, h, fill, op) {
+    const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    r.setAttribute("x", x); r.setAttribute("y", y); r.setAttribute("width", w); r.setAttribute("height", h);
+    r.setAttribute("fill", fill); r.setAttribute("opacity", op);
+    svg.appendChild(r);
+}
+
+function drawText(svg, x, y, txt, size) {
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    t.setAttribute("x", x); t.setAttribute("y", y);
+    t.setAttribute("fill", "#ffffff");
+    t.setAttribute("font-size", size); t.setAttribute("font-family", "monospace");
+    t.textContent = txt;
+    svg.appendChild(t);
+    }
+
+    
         function updateInterpretation(info) {
             const content = document.getElementById('insight-content');
             const tag = document.getElementById('insight-gate-tag');
@@ -2023,6 +2173,94 @@ function renderWavefront() {
             currentStep = circuit.length;
             runSimulation();
         }
+
+      /**
+ * Generates the full 32x32 transition matrix for a given gate in the circuit.
+ */
+function getGateMatrix(gateObj) {
+    const size = STATES; // 32 for 5 qubits
+    let matrix = Array.from({ length: size }, () => Array(size).fill(null).map(() => new Complex(0, 0)));
+
+    // 1. Define Basic 2x2 Unitaries
+    const I = [new Complex(1), new Complex(0), new Complex(0), new Complex(1)];
+    const X = [new Complex(0), new Complex(1), new Complex(1), new Complex(0)];
+    const Y = [new Complex(0), new Complex(0, -1), new Complex(0, 1), new Complex(0)];
+    const Z = [new Complex(1), new Complex(0), new Complex(0), new Complex(-1)];
+    const H = [new Complex(1 / Math.sqrt(2)), new Complex(1 / Math.sqrt(2)), 
+               new Complex(1 / Math.sqrt(2)), new Complex(-1 / Math.sqrt(2))];
+    const S = [new Complex(1), new Complex(0), new Complex(0), new Complex(0, 1)];
+    const T = [new Complex(1), new Complex(0), new Complex(0), new Complex(Math.cos(Math.PI/4), Math.sin(Math.PI/4))];
+
+    let baseUnitary = I;
+    if (gateObj.type === 'H') baseUnitary = H;
+    else if (gateObj.type === 'X') baseUnitary = X;
+    else if (gateObj.type === 'Y') baseUnitary = Y;
+    else if (gateObj.type === 'Z') baseUnitary = Z;
+    else if (gateObj.type === 'S') baseUnitary = S;
+    else if (gateObj.type === 'T') baseUnitary = T;
+    else if (gateObj.type === 'U' || gateObj.type === 'CU') {
+        const [theta, phi, lambda] = gateObj.angles;
+        baseUnitary = [
+            new Complex(Math.cos(theta / 2)),
+            new Complex(-Math.cos(lambda) * Math.sin(theta / 2), -Math.sin(lambda) * Math.sin(theta / 2)),
+            new Complex(Math.cos(phi) * Math.sin(theta / 2), Math.sin(phi) * Math.sin(theta / 2)),
+            new Complex(Math.cos(phi + lambda) * Math.cos(theta / 2), Math.sin(phi + lambda) * Math.cos(theta / 2))
+        ];
+    }
+
+    // 2. Build the 32x32 Matrix
+    for (let i = 0; i < size; i++) {
+        const bitString = i.toString(2).padStart(QUBITS, '0').split('');
+        
+        // Handle Controlled Gates (CNOT, CZ, CU, MCZ)
+        if (gateObj.controls && gateObj.controls.length > 0) {
+            const allControlsActive = gateObj.controls.every(c => bitString[c] === '1');
+            
+            if (allControlsActive) {
+                if (gateObj.type === 'SWAP') {
+                    // SWAP logic: targets are gateObj.target and gateObj.controls[0]
+                    const t1 = gateObj.target;
+                    const t2 = gateObj.controls[0];
+                    let newBitString = [...bitString];
+                    [newBitString[t1], newBitString[t2]] = [newBitString[t2], newBitString[t1]];
+                    const j = parseInt(newBitString.join(''), 2);
+                    matrix[j][i] = new Complex(1, 0);
+                } else {
+                    // Standard Controlled 2x2 Unitary
+                    const targetBit = bitString[gateObj.target];
+                    const rowBase = (targetBit === '0') ? 0 : 2;
+                    
+                    // Row for result |0>
+                    let bitString0 = [...bitString]; bitString0[gateObj.target] = '0';
+                    const j0 = parseInt(bitString0.join(''), 2);
+                    matrix[j0][i] = baseUnitary[rowBase];
+
+                    // Row for result |1>
+                    let bitString1 = [...bitString]; bitString1[QUBITS - 1 - gateObj.target] = '1';
+                    const j1 = parseInt(bitString1.join(''), 2);
+                    matrix[j1][i] = baseUnitary[rowBase + 1];
+                }
+            } else {
+                // Control not active: Identity
+                matrix[i][i] = new Complex(1, 0);
+            }
+        } 
+        // Handle Single Qubit Gates
+        else {
+            const targetBit = bitString[gateObj.target];
+            const rowBase = (targetBit === '0') ? 0 : 2;
+
+            let bit0 = [...bitString]; bit0[gateObj.target] = '0';
+            const j0 = parseInt(bit0.join(''), 2);
+            matrix[j0][i] = baseUnitary[rowBase];
+
+            let bit1 = [...bitString]; bit1[gateObj.target] = '1';
+            const j1 = parseInt(bit1.join(''), 2);
+            matrix[j1][i] = baseUnitary[rowBase + 1];
+        }
+    }
+    return matrix;
+}
 
         function stepForward() { if (currentStep < circuit.length) { currentStep++; runSimulation(); } }
         function stepBack() { if (currentStep > 0) { currentStep--; runSimulation(); } }
