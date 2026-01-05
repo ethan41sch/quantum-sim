@@ -1,0 +1,53 @@
+
+2026/01/05
+
+1. Quantum Logic & Calculation Fixes
+
+IQFT Sequence Error: The Inverse Quantum Fourier Transform (addIQFT)
+was incorrectly using the same block order as the QFT and had the SWAP
+gates at the end instead of the beginning. I reversed the block order
+and moved the SWAPs to the start to correctly invert the
+transformation.
+
+Controlled Gate Matrix Rendering: High-dimensional matrices for
+controlled gates (like CU or multi-controlled gates) were missing
+their identity entries (1 on the diagonal) for states where the
+control condition was not met. This caused the "Matrices" view to
+display incomplete operators. I fixed this by ensuring identity
+entries are correctly populated.
+
+Hadamard Gate Controls: Added logic to respect control qubits for
+Hadamard gates in the simulator, ensuring consistency with other
+controlled operations.
+
+2. Rendering & Visualization Fixes
+
+Bloch Sphere Axis Inversion: Fixed a sign error in the y-axis
+calculation for the individual qubit "polytope" (Bloch sphere) views,
+which was causing the state to be mirrored compared to standard
+conventions.
+
+Wavefront Label Displacement: Corrected the coordinate mapping and
+animation axis for state labels in the 3D Wavefront view. Labels were
+previously oscillating along the grid instead of vertically and were
+misaligned with the emitter sources.
+
+History View "Pointing Down" Logic: Simplified the logic for
+downward-pointing bars in the amplitude history chart to strictly
+follow the sign of the real component, making the visualization more
+intuitive.
+
+Matrix Scrolling: Fixed a CSS issue where the full 32 x 32
+operator matrix could overflow the UI without a scrollbar; it now
+includes a proper horizontal scroll wrapper.
+
+3. UI & Stability Fixes
+
+T Gate Typo: Fixed a typo in the T gate tooltip that labeled it as a "Z Gate" and contained a double word ("phase phase").
+
+Tooltip HTML Structure: Corrected several missing closing tags (</ol>,
+</li>) and handled a missing else if in the circuit rendering loop.
+
+Crashes on Cancel: Added a null check for the U and CU gate
+prompts to prevent the application from crashing if a user cancels the
+angle input dialog.
