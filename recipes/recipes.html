@@ -1,23 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quantum Explorer Recipes</title>
     <link rel="stylesheet" href="recipes.css">
-  </head>
+    <style>
+        /* Specific styles for the Index layout */
+        .recipe-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
 
-  <body>
-    <p>
-      Use the following recipes for exploring various aspects
-      of quantum computing. The recipes will allow one to
-      set up a sequence of quantum gates and then guide
-      through the different visualizations with tips on
-      what to look for.
+        .recipe-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            transition: transform 0.2s, border-color 0.2s;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
 
-      <ul>
-        <li>Inverse Quantum Fourier Transform
-          <a href="iqft.html">Recipe</a>
-        <li>A
-      </ul>
-  </body>
+        .recipe-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-blue);
+        }
+
+        .recipe-card h2 {
+            margin: 0 0 12px 0;
+            font-size: 1.25rem;
+            color: var(--accent-blue);
+        }
+
+        .recipe-card p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .btn-launch {
+            color: var(--accent-purple);
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Quantum Explorer Recipes</h1>
+        <p>Select a guided walkthrough to explore quantum phenomena through interactive circuits and visualizations.</p>
+    </header>
+
+    <div class="recipe-grid">
+        
+        <a href="iqft.html" class="recipe-card">
+            <div>
+                <h2>Inverse Quantum Fourier Transform</h2>
+                <p>Learn to identify frequency and periodicity by applying phase rotations and the Inverse QFT operator.</p>
+            </div>
+            <span class="btn-launch">Launch Recipe &rarr;</span>
+        </a>
+
+        <div class="recipe-card" style="opacity: 0.6; border-style: dashed;">
+            <div>
+                <h2>Shor's Algorithm</h2>
+                <p>Coming soon: Step through the quantum portion of the factoring process.</p>
+            </div>
+            <span class="btn-launch" style="color: var(--text-muted);">Locked</span>
+        </div>
+
+    </div>
+
+    <section class="note-box" style="margin-top: 50px;">
+        <p><strong>Note:</strong> Each recipe includes specific tips for the 3D Wave and Phase Disk views to help you visualize the underlying math.</p>
+    </section>
+
+</body>
 </html>
