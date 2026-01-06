@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grover Diffusion Operator</title>
+    <link rel="stylesheet" href="recipes.css">
+</head>
+<body>
+    <nav class="nav-header">
+        <a href="recipes.html" class="back-link">← Back to Recipe Index</a>
+    </nav>
+    <h1>Grover Diffusion Operator</h1>
+    <p>
+      This guide walks through the Grover Diffusion operator. This is the main component of Grover's Algorithm. In Grover's algorithm, this operator will be applied repeatedly to arrive at the answer.  The number of times it needs to be applied is sqrt(N) where N is the size of the search space.
+    </p>
+
+    <ol class="recipe-steps">
+      <li>
+        <strong>Reset the Workspace</strong>
+        <p>Clear the circuit using the <code>Clear</code> button in the upper right.</p>
+      </li>
+
+        <li>
+            <strong>Initialize Superposition</strong>
+            <p>Apply the <code>Superposition State</code> pre-built operator to apply an H gate to all qubits.</p>
+            <ul class="observations">
+                <li>Probabilities (table at lower left) for all 32 states are now ~3.1% (1/32).</li>
+                <li>Phase disks show a phase angle of 0&deg; (pointing right).</li>
+                <li>In 3D Waves view: White lines are in sync, indicating uniform phase.</li>
+            </ul>
+        </li>
+      
+        <li>
+            <strong>Phase flip state |11111></strong>
+            <p>Apply an MCZ gate to qubit 4.</p>
+            <ul class="observations">
+              <li>The MCZ gate is a multi-control Z gate.</li>
+              <li>It applise the Z gate to a state if all of the control qubits are 1 in that state.</li>
+              <li>In our setup, this will flip the phase of state |11111>.</li>
+              <li>In the phase disk view, the phase disk for |11111> should now have a red dial and point to the left (180&deg;).</li>
+              <li>In the History view, the amplitude for |11111> should be red and inverted (below the axis).</li>
+              <li>This is how the system state should be in preparation for the Grover Diffusion operator.</li>
+              <li>The state which has a negative amplitude (negative phase), is the state which is the &quot;correct&quot; answer.</li>
+              <li>Notice that the probabilities for all of the states are still 3.1% (1/32). All that has been changed is the sign of the amplitude, not the magnitude.</li>
+            </ul>
+        </li>
+
+        <li>
+            <strong>Apply Grover's Diffusion Operator</strong>
+            <p>Use the pre-built operator to apply a Grover Diffusion.</p>
+            <ul class="observations">
+                <li>Scroll down to the state |11111> in the probabilities table. It should now be around 25%. The other state probabilities have been reduced to about 2.4%.</li>
+                <li>In the history view, the magnitude of the amplitude of |11111> is also visibility larger than the other states.</li>
+            </ul>
+        </li>
+
+        <li>
+            <strong>Optional: Repeat the process.</strong>
+            <p>Grover's Algorithm repeats this process sqrt(N) times. Each iteration will increase the amplitude of the &quot;correct&quot; answer. This can be done here, but take note:</p>
+            <ul class="observations">
+              <li>Notice in the phase disk view, all of the phases are the same.</li>
+              <li>It doesn't matter what the phases are, just that they are the same.</li>
+              <li>For the Grover Diffusion operator, the &quot;correct&quot; answer must have the opposite phase from the &quot;incorrect&quot; answers.</li>
+              <li>Therefore, to repeat the process, first apply an MCZ gate to qubit 4, then apply the Grover Diffusion operator.</li>
+              <li>For a state space size of 32, repeating it 5 times will maximize the probability for |11111>.</li>
+            </ul>
+        </li>
+        
+        <li>
+            <strong></strong>
+            <p>Instructions on what button to press or gate to move.</p>
+            <ul class="observations">
+                <li>What the user should notice in the Phase Disks.</li>
+                <li>What the user should notice in the 3D Waves.</li>
+            </ul>
+        </li>
+        
+        
+        </ol>
+
+    <section class="note-box">
+        <h3>Final Notes</h3>
+        <ul>
+          <li>In this recipe, we targeted the state |11111> as the &quot;correct&quot; answer. This was to simplify the recipe.
+          <li>In a real use of Grover's algorithm, there would be an &quot;oracle&quot; quantum circuit. The oracle would evaluate all of the states and emit a 1 bit for the state that is correct and 0 bits for all of the incorrect states. This bit would then be used do perform a multi-target CZ operation on the states.</li>
+          
+          <li>For example, the oracle could be a circuit that evaluates a boolean expression for 3SAT. The input to the circuit is the superposition of all possible states, one qubit for each variable in the expression. Only the &quot;correct&quot; answer will emit &quot;True&quot; (a 1 bit).</li>
+
+          <li>In general, if one has &quot;f(x) = y&quot;, and 'y' is known, Grover's algorithm can find 'x'. A quantum circuit can be built that evaluates f(x) and then compares the result to 'y', emitting a 1 bit if equal.</li>
+
+        </ul>
+    </section>
+
+</body>
+</html>
