@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Fourier Transform</title>
+    <link rel="stylesheet" href="recipes.css">
+</head>
+<body>
+    <nav class="nav-header">
+        <a href="recipes.html" class="back-link">← Back to Recipe Index</a>
+    </nav>
+    <h1>Quantum Fourier Transform</h1>
+    <p>
+      
+    </p>
+
+    <ol class="recipe-steps">
+      <li>
+        <strong>Reset the Workspace</strong>
+        <p>Clear the circuit using the <code>Clear</code> button in the upper right.</p>
+      </li>
+
+      <li>
+        <strong>Initialize qubits to a binary value using X gates.</strong>
+        <p>Using X gates, flip qubits to a 1 in order to encode a binary value. This works best if the encoded value is a factor of 32 (the size of our state vector space).
+        </p>
+      </li>
+
+      <li>
+        <strong>Apply Quantum Fourier Transform</strong>
+        <p>Use the QFT pre-built operator to apply the quantum fourier transform.</p>
+        <ul class="observations">
+          <li>The value originally encoded was the frequency. If this value is 'n', then the QFT causes the phases of the state vectors to be rotations so that 'n' full rotations occur across the 32 states.</li>
+          <li>Use the phase disks to visually identify where the phase pattern repeats. For example, if the original encoded value was 4, then the phase repeats on each row. If 2 was the encoded value, then it takes two rows of phase disks to complete a full rotation.</li>
+          <li>The number of times this rotation completes is the frequency.</li>
+        </ul>
+      </li>
+
+        </ol>
+
+    <section class="note-box">
+        <h3>Final Notes</h3>
+        <p>The Quantum Fourier Transform is usually used for state preparation or transformation. Here are some use cases:</p>
+        <ul>
+          <li>To create a periodic phase pattern across the states.</li>
+          <li>To perform Quantum Arithmetic.</li>
+          <li>To solve differential equations.</li>
+        </ul>
+        <p>In general, the inverse Quantum Transform is used by more algorithms, but the QFT is still useful.</p>
+    </section>
+
+</body>
+</html>
