@@ -32,10 +32,13 @@ let wavefrontlabels = [];
 
 const WF_GRID_X = 8;
 const WF_SPACING = 2.5;
+let globalTooltip = null;
 
-const globalTooltip = document.createElement('div');
-globalTooltip.className = "fixed hidden bg-black text-white text-[10px] px-2 py-1 rounded z-[10000] pointer-events-none whitespace-normal shadow-xl";
-document.body.appendChild(globalTooltip);
+function createToolTip() {
+    globalTooltip = document.createElement('div');
+    globalTooltip.className = "fixed hidden bg-black text-white text-[10px] px-2 py-1 rounded z-[10000] pointer-events-none whitespace-normal shadow-xl";
+    document.body.appendChild(globalTooltip);
+}
 
 
 function getEmitterCoords(s) {
@@ -1126,6 +1129,13 @@ function updateViews(lastMatrix, lastGateInfo) {
     if (list) list.innerHTML = stateVector.map((amp, i) => amp.magSq() > 0.001 ? `<div class="p-1 text-sky-400 font-bold border-b border-slate-800">|${i.toString(2).padStart(QUBITS, '0')}⟩ ${(amp.magSq() * 100).toFixed(1)}%</div>` : '').join('');
 }
 
+function setInterpretation(label, content){
+    const div = document.getElementById('insight-content');
+    const tag = document.getElementById('insight-gate-tag');
+    tag.innerText = label;
+    div.innerHTML = content;
+}
+
 function updateInterpretation(info) {
     const content = document.getElementById('insight-content');
     const tag = document.getElementById('insight-gate-tag');
@@ -1426,6 +1436,7 @@ function init() {
         finalR.addEventListener('dragleave', () => finalR.classList.remove('drag-over'));
         finalR.addEventListener('drop', e => handleDrop(e, i));
     }
+    createToolTip();
     animate(); runSimulation();
 }
 
@@ -1552,9 +1563,12 @@ function addGroverDiffusion() {
     circuit.push(...hGates, ...xGates, mczGate, ...xGates, ...hGates);
     currentStep = circuit.length;
     runSimulation();
+    setInterpretation('Grover', 'The Grover Diffusion Operator.');
+
 }
 
 function addSuperpositionState() {
+    resetCircuit();
     for (let i=0;i<QUBITS;i++){
         circuit.push({
             type: 'H',
@@ -1565,6 +1579,7 @@ function addSuperpositionState() {
     }
     currentStep = circuit.length;
     runSimulation();
+    setInterpretation('Superposition', 'Circuit is cleared and all qubits are in superposition');
 }
 
 
@@ -1576,6 +1591,7 @@ function addBellState() {
 
     currentStep = circuit.length;
     runSimulation();
+    setInterpretation('Bell State', 'The Bell State creates the 4 maximally entangled quantum states of two qubits.');
 }
 
 function addQFT() {
@@ -1603,6 +1619,8 @@ function addQFT() {
 
     currentStep = circuit.length;
     runSimulation();
+
+    setInterpretation('QFT', 'The Quantum Fourier Transform operator.');
 }
 
 function addIQFT() {
@@ -1630,6 +1648,7 @@ function addIQFT() {
 
     currentStep = circuit.length;
     runSimulation();
+    setInterpretation('invQFT', 'The Inverse Quantum Fourier Transform operator.');
 }
 
 function openRecipeWindow() {
