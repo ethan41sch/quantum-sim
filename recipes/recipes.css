@@ -113,3 +113,37 @@ code {
     text-decoration: underline;
 }
 
+/* Close Button Styling */
+.close-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+}
+
+.btn-close {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-close:hover {
+    background: rgba(248, 113, 113, 0.1); /* Subtle red tint */
+    border-color: #f87171; /* Soft red error/close color */
+    color: #f87171;
+    transform: translateY(-1px);
+}
+
+.btn-close:active {
+    transform: translateY(0);
+}
+
+
+

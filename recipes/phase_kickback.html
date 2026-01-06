@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase Kickback</title>
+    <link rel="stylesheet" href="recipes.css">
+</head>
+<body>
+    <nav class="nav-header">
+        <a href="recipes.html" class="back-link">← Back to Recipe Index</a>
+    </nav>
+    <h1>Phase Kickback</h1>
+    <p>
+      Phase kickback is an interesting interaction involving a control gate. Normally, the control gate changes the target qubit only. But with phase kickback, the phase of the control qubit can be changed.
+    </p>
+
+    <ol class="recipe-steps">
+        <li>
+            <strong>Reset the Workspace</strong>
+            <p>Clear the circuit using the <code>Clear</code> button in the upper right.</p>
+        </li>
+
+        <li>
+          <strong>Put qubit 4 into superposition.</strong>
+          <p>Apply an H gate to qubit 4. Remember qubit 4 is the last qubit and is the LSB of the state vector.</p>
+          <ul class="observations">
+            <li>States |00000> and |00001> should "light up" in the phase disks, and have probabilities of 50% in the probabilties table.</li>
+          </ul>
+        </li>
+
+        <li>
+          <strong>Put qubit 3 into the |-> state.</strong>
+          <p>First apply an X gate to qubit 3 followed by an H gate.
+            <ul class="observations">
+              <li>Notice that the states |00010> and |00011> are now lit up, and there are now 4 non-zero states, each with a probability of 25%.</li>
+              <li>The phase of the states |00010> and |00011> are &quot;negative&quot;. Note on the phase disks that they are red and now pointing to the left, 180&deg; rotated.<li>
+              <li>Remember, for the phase to be changed, the target qubit of the gate must be a 1 in a state vector for that state vectors phase to change (and it has to have a non-zero amplitude).</li>
+            </ul>
+        </li>
+
+        <li>
+          <strong>Conditionally flip qubit 3 based on qubit 0</strong>
+          <p>Apply a CNOT to qubit 3 with qubit 4 as the control.</p>
+          <ul class="observations">
+            <li>The two states that have qubit 4 (control) as 1 are |00001> and |00011>.</li>
+            <li>The CNOT gate flips qubit 3 if qubit 4 is a 1.</li>
+            <li>Notice that states |00001> and |00011> phase have changed. The states where qubit 4 was a 1.</li>
+            <li>The phase has been kicked back to states where qubit 3 was a 1.</li>
+            <li>Remember, phase is additive. |00011> had a phase of 180&deg;, then another 180&deg; was kicked back onto it rotating it back to 0&deg;.</li>
+            <li>Try using the &quot;Back&quot; and &quot;Forward&quot; buttons to move back and forth watching the phase disks.</li>
+          </ul>
+        </li>
+        </ol>
+
+    <section class="note-box">
+        <h3>Final Notes</h3>
+        <ul>
+          <li>Phase kickback is a foundational operation used by many quantum algorithms.</li>
+          <li>It reverses the &quot;cause and effect&quot; between the control and target qubits.</li>
+          <li>The control qubit must be in superposition.</li>
+          <li>It can be used to read information from a quantum state without changing it.</li>
+        </ul>
+    </section>
+
+</body>
+</html>
