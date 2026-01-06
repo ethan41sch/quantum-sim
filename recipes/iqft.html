@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Quantum Explorer Inverse QFT Recipe</title>
+    <link rel="stylesheet" href="recipes.css">
+  </head>
+  <body>
+    <p>
+      This recipe will step through setting up a circuit
+      to use the inverse Quantum Fourier Transform and
+      demonstrate what to look for at various steps.
+
+      <ol>
+        <li>Clear the circuit using the &quot;Clear&quot; button in the upper right
+          
+        <li>Put all of the qubits into superposition using the &quot;Superposition State&quot; button in the list of pre-built operators. This will apply an H gate to each qubit.
+          
+          <ul>
+            <li>Notice that the probabilities for all 32 states are now about 3.1% (or 1/32).
+            <li>All of the phase disks should look the same; a small circle of fill in the center, with the phase angle line pointing directly to the right, indicating a phase angle of 0&deq;
+            <li>Switch to the 3D Waves view.
+            <li>Orient the view so that you are looking down the &quot;barrel&quot; of the waves.
+            <li>The white lines attached to the end of the waves indicates the relative phase angle. They are all in sync because all of the states have the same phase.
+            <li>Orient the view so that you are looking at the waves from the side (orient so that the white composite wave is at the back). Shift it so that the waves line up. It may be necessary to zoom out to see everything.
+            <li>Notice that all of the waves for the states are all in sync.
+            <li>Switch back to the Phase Disk view.
+          </ul>
+          
+        <li>Apply a T gate to qubit 4 (the bottom row).
+          <ul>
+            <li>Since qubit 4 is the least significant bit, every other qubit should now have a phase angle of 45&deg;.
+            <li>Switch to the 3D Waves view. Orient the view so that you are looking down the &quot;barrel&quot; of the waves.
+            <li>The white lines attached to the end of the waves indicates the relative phase angle. They are now two different phase angles, alternating between the states.
+            <li>Switch back to the Phase Disk view.
+          </ul>
+          
+        <li>Apply an S gate to qubit 3 (next to last row).
+          <ul>
+            <li>Notice that we now have 4 different unique phases in the set of state vectors: 0&deg;, 45&deg;, 90&deg;, and 135&deg;.
+            <li>This is because the phases are additive, but only if the qubit the phase gate was applied to was 1 (and the amplitude is non-zero).
+            <li>The 3D wave view should show even more diversity of the wave forms.
+          </ul>
+
+        <li>Apply a Z gate to qubit 2
+          <ul>
+            <li>Now we have 8 different phases.
+            <li>On the Phase Disk view, one can clearly see that we have a period of 8.
+            <li>The frequency for this is 4. This is because one "time unit" is the size of the state vector space, in this case 32. The sequence repeats 4 times in that time.
+            <li>The inverse Quantum Fourier Transform will give us the frequency.
+            <li>On the 3D Wave view, the composite wave is now just a zero sized line. This indicates that there is complete destructive interference.
+            <li>This can be seen by orienting to the side view to see across the waves. They are perfectly cancelling out.
+            <li>If you view it from the left corner, you can see that there is a periodic behavior to the waves as well.
+            <li>Finally notice that all of the probabilities are still 3.1% (1/32). This is because the T, S and Z gates only affect the phase. They do not affect the amplitudes.
+            <li>Switch back to the Phase Disk view
+          </ul>
+
+        <li>Use the invQFT button to apply the sequence of gates for the inverse Quantum Fourier Transform.
+          <ul>
+            <li>Examine the Probabilities.
+            <li>There should be a single state, |00100> with a probability of 100%.
+            <li>|00100> is the value 4. As noted earlier, this is the frequency.
+            <li>To obtain the period, simply divide the size of the state space (32) by the frequency.
+            <li>32 / 4 = 8, which is the period.
+          </ul>
+
+        <li>Final Notes
+          <ul>
+            <li>If the frequency or the period is not a divisor of the size of the state space, then the inverse QFT will not give an exact answer. It may give multiple answers that are close to the correct answer.
+            <li>Shor's Algorithm uses this to find a period.
+            <li>For integer factoring, it uses a combination of modular exponentation and phase rotations that, when the inverse QFT is applied, allows the period to be computed. This value is then used in a classical computation to complete the factoring.
+          </ul>
+          
+      </ol>
+          
+  </body>
+</html>

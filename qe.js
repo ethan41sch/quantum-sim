@@ -1632,6 +1632,11 @@ function addIQFT() {
     runSimulation();
 }
 
+function openRecipeWindow() {
+    const windowFeatures = "width=600,height=500,left=100,top=100,resizable=yes,scrollbars=yes";
+    window.open("recipes/recipes.html", "Recipes", windowFeatures);
+}
+
 function stepForward() { if (currentStep < circuit.length) { currentStep++; runSimulation(); } }
 function stepBack() { if (currentStep > 0) { currentStep--; runSimulation(); } }
 function resetStep() { currentStep = 0; runSimulation(); }
