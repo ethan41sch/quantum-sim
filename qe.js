@@ -1554,6 +1554,20 @@ function addGroverDiffusion() {
     runSimulation();
 }
 
+function addSuperpositionState() {
+    for (let i=0;i<QUBITS;i++){
+        circuit.push({
+            type: 'H',
+            target: i,
+            controls: [],
+            angles: []
+        });
+    }
+    currentStep = circuit.length;
+    runSimulation();
+}
+
+
 function addBellState() {
     const hGate = { type: 'H', target: 0, controls: [], angles: [] };
     const cnotGate = { type: 'CNOT', target: 1, controls: [0], angles: [] };
