@@ -1,0 +1,12 @@
+#!/bin/sh
+
+dirname=`pwd`
+url=file://localhost/"$dirname"/QuantumExplorer.html
+
+if [ -x /usr/bin/xdg-open ]; then
+   /usr/bin/xdg-open "$url" > /dev/null
+elif [ -x /usr/bin/open ]; then
+   /usr/bin/open "$url" > /dev/null
+else
+   echo "$0: Can't find command to open a URL" 1>&2
+fi
