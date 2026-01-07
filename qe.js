@@ -1134,7 +1134,7 @@ function initVSphere() {
     animate();
 }
 
-function updateVSphere() {
+function updateVSphereX() {
     if (!vsphere.scene) return;
     vsphere.vectors.forEach(v => vsphere.scene.remove(v));
     vsphere.vectors = [];
@@ -1156,7 +1156,7 @@ function updateVSphere() {
 
     stateVector.forEach((amp, i) => {
         if (amp.magSq() < 0.00001 && meanMag < 0.00001) return;
-        
+
         // Bloch Sphere projection (standard mapping)
         const prob = amp.magSq();
         const theta = 2 * Math.acos(Math.sqrt(prob)); 
@@ -1164,12 +1164,15 @@ function updateVSphere() {
         
         // Round for grouping (precision 0.01)
         const key = `${theta.toFixed(2)}_${phi.toFixed(2)}`;
-        if (!groups.has(key)) groups.set(key, { theta, phi, states: [] });
+        if (!groups.has(key)) groups.set(key, { amp, theta, phi, states: [] });
         groups.get(key).states.push(i);
     });
 
     let groupCounter = 1;
     groups.forEach((data, key) => {
+        const diff = data.amp.re - meanAmp.re;
+        const azimuth = (i / STATES) * Math.PI * 2;
+        
         const x = 2 * Math.sin(data.theta) * Math.cos(data.phi);
         const z = 2 * Math.sin(data.theta) * Math.sin(data.phi);
         const y = 2 * Math.cos(data.theta);
@@ -1212,7 +1215,64 @@ function updateVSphere() {
     });
 }
 
+function updateVSphere() {
+    if (!vsphere.scene) return;
+    vsphere.vectors.forEach(v => vsphere.scene.remove(v));
+    vsphere.vectors = [];
+    vsphere.labels.forEach(v => vsphere.scene.remove(v));
+    vsphere.labels = [];
+    
+    // 1. Calculate the Mean Amplitude (Complex)
+    let meanRe = 0;
+    let meanIm = 0;
+    stateVector.forEach(amp => {
+        meanRe += amp.re;
+        meanIm += amp.im;
+    });
+    const meanAmp = new Complex(meanRe / STATES, meanIm / STATES);
+    const meanMag = meanAmp.mag();
 
+    const legend = document.getElementById('vsphere-legend');
+    legend.innerHTML = `<div class="text-[10px] text-yellow-500 mb-2 border-b border-yellow-500/20 pb-1">Mean Mag: ${meanMag.toFixed(4)}</div>`;
+
+    stateVector.forEach((amp, i) => {
+        if (amp.magSq() < 0.00001) return;
+
+        // 2. Position logic: 
+        // We treat the "Mean" as the vertical Z-axis.
+        // The distance from the mean determines the 'spread'.
+        const diff = amp.re - meanAmp.re; // Real part difference
+        
+        // Map the state index to a circle around the Z-axis (the Mean)
+        const azimuth = (i / STATES) * Math.PI * 2;
+        
+        // Y-coordinate is the amplitude relative to the mean
+        // If amp > mean, it points UP. If amp < mean, it points DOWN.
+        const y = (amp.re - meanAmp.re) * 1.5; // Scaled for visibility
+        const x = Math.cos(azimuth) * 1.5;
+        const z = Math.sin(azimuth) * 1.5;
+
+        const color = new THREE.Color();
+        color.setHSL((amp.phase() + Math.PI) / (2 * Math.PI), 1.0, 0.5);
+
+        // 3. Render the Vector Line
+        const start = new THREE.Vector3(0, 0, 0);
+        const end = new THREE.Vector3(x, y, z);
+        
+        const mat = new THREE.LineBasicMaterial({ color: color });
+        const geo = new THREE.BufferGeometry().setFromPoints([start, end]);
+        const line = new THREE.Line(geo, mat);
+        
+        vsphere.scene.add(line);
+        vsphere.vectors.push(line);
+
+        // 4. Add Label at the tip
+        const label = createTextSprite(`|${i.toString(2).padStart(QUBITS, '0')}⟩`, `#${color.getHexString()}`, scale=0.8);
+        label.position.copy(end.multiplyScalar(1.1));
+        vsphere.scene.add(label);
+        vsphere.labels.push(label);
+    });
+}
 
 
 
