@@ -26,6 +26,7 @@ let stateHistory = [];
 let corkscrew = { scene: null, camera: null, renderer: null, controls: null, lines: [], labels: [], needles: [], compositeLine: null };
 let wavefront = { scene: null, camera: null, renderer: null, controls: null, mesh: null, geometry: null, container: null };
 let qsphere = { scene: null, camera: null, renderer: null, controls: null, nodes: [], labels: [], vectors: [] };
+let vsphere = { scene: null, camera: null, renderer: null, controls: null, vectors: [], groups: [], labels: [] };
 let entanglementView = { scene: null, camera: null, renderer: null, controls: null, nodes: [], edges: [] };
 let polytopeViews = [];
 let wavefrontlabels = [];
@@ -57,6 +58,7 @@ function switchTab(tabId) {
         if (tabId === 'corkscrew') initCorkscrew();
         if (tabId === 'wavefront') initWavefront();
         if (tabId === 'qsphere') initQSphere();
+        if (tabId === 'vsphere') initVSphere();
         if (tabId === 'hinton') { initPolytopeView(); initHintonLabels(); }
         if (tabId === 'entanglement') initEntanglementView();
         if (tabId === 'history') updateHistoryView();
@@ -623,7 +625,7 @@ function updateHistoryView() {
     }
 }
 
-function createTextSprite(text, color = '#94a3b8') {
+function createTextSprite(text, color = '#94a3b8', scale=1.2) {
     const formattedText = text.replace('|', '∣').replace('>', '⟩');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -639,7 +641,7 @@ function createTextSprite(text, color = '#94a3b8') {
     const texture = new THREE.CanvasTexture(canvas);
     const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
     const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.scale.set(1.2, 0.6, 1);
+    sprite.scale.set(scale, scale/2, 1);
     return sprite;
 }
 
@@ -1040,6 +1042,180 @@ function renderQSphere() {
     qsphere.renderer.render(qsphere.scene, qsphere.camera);
 }
 
+// VSphere - BlochSphere for state vectors
+//
+// For each state vector with non-zero amplitude:
+//    Compute the location on the BlochSphere where the vector
+//       would point.  Use |amplitude| and phase for this.
+//    Group all state vectors together that are at the same point.
+//    Create labels for each group. If only one element in the group,
+//       use the bitstring for the group, otherwise create a name.
+//    Render the vectors and display the "legend" for the group names.
+//
+
+
+function createAxisLine(startVec, endVec, hexColor) {
+    const geometry = new THREE.BufferGeometry().setFromPoints([startVec, endVec]);
+    const material = new THREE.LineBasicMaterial({ 
+        color: new THREE.Color(hexColor),
+        linewidth: 2,
+        transparent: false,
+        opacity: 1
+    });
+    const line = new THREE.Line(geometry, material);
+    line.renderOrder = 0;
+    return line;
+}
+
+function initVSphere() {
+    if (vsphere.renderer) return;
+    const container = document.getElementById('vsphere-container');
+    vsphere.scene = new THREE.Scene();
+    vsphere.camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    vsphere.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    vsphere.renderer.setSize(container.clientWidth, container.clientHeight);
+    container.appendChild(vsphere.renderer.domElement);
+
+    vsphere.controls = new THREE.OrbitControls(vsphere.camera, vsphere.renderer.domElement);
+    vsphere.camera.position.set(8, 3, -8);
+    vsphere.camera.lookAt(0, 0, 0);
+
+    const yAxis = createAxisLine(new THREE.Vector3(2, 0, 0), new THREE.Vector3(-2, 0, 0), 0x29ba72);
+    vsphere.scene.add(yAxis);
+
+    const zAxis = createAxisLine(new THREE.Vector3(0, 2, 0), new THREE.Vector3(0, -2, 0), 0x6c21b8);
+    vsphere.scene.add(zAxis);
+
+    const xAxis = createAxisLine(new THREE.Vector3(0, 0, 2), new THREE.Vector3(0, 0, -2), 0xca67db);
+    vsphere.scene.add(xAxis);
+
+    const labelY = createTextSprite("X", "#a6bfb3");
+    labelY.position.set(2.4, 0, 0);
+    vsphere.scene.add(labelY);
+
+    const labelY2 = createTextSprite("-X", "#a6bfb3");
+    labelY2.position.set(-2.4, 0, 0);
+    vsphere.scene.add(labelY2);
+
+
+    const labelZ = createTextSprite("0", "#a6bfb3");
+    labelZ.position.set(0, 2.4, 0);
+    vsphere.scene.add(labelZ);
+    
+    const labelZ2 = createTextSprite("1", "#a6bfb3");
+    labelZ2.position.set(0, -2.4, 0);
+    vsphere.scene.add(labelZ2);
+
+
+    const labelX = createTextSprite("-Y", "#a6bfb3");
+    labelX.position.set(0, 0, 2.4);
+    vsphere.scene.add(labelX);
+
+    const labelX2 = createTextSprite("Y", "#a6bfb3");
+    labelX2.position.set(0, 0, -2.4);
+    vsphere.scene.add(labelX2);
+
+    // Grid and Sphere shell
+    const sphereGeom = new THREE.SphereGeometry(2, 32, 32);
+    const sphereMat = new THREE.MeshPhongMaterial({ color: 0x1e293b, transparent: true, opacity: 0.1, wireframe: true });
+    vsphere.scene.add(new THREE.Mesh(sphereGeom, sphereMat));
+    
+    const light = new THREE.PointLight(0xffffff, 1, 100);
+    light.position.set(10, 10, 10);
+    vsphere.scene.add(light);
+    vsphere.scene.add(new THREE.AmbientLight(0x404040));
+
+    function animate() {
+        if (activeTab === 'vsphere') {
+            requestAnimationFrame(animate);
+            vsphere.renderer.render(vsphere.scene, vsphere.camera);
+        }
+    }
+    animate();
+}
+
+function updateVSphere() {
+    if (!vsphere.scene) return;
+    vsphere.vectors.forEach(v => vsphere.scene.remove(v));
+    vsphere.vectors = [];
+    vsphere.labels.forEach(v => vsphere.scene.remove(v));
+    vsphere.labels = [];
+    const legend = document.getElementById('vsphere-legend');
+    legend.innerHTML = '';
+
+    let meanRe = 0;
+    let meanIm = 0;
+    stateVector.forEach(amp => {
+        meanRe += amp.re;
+        meanIm += amp.im;
+    });
+    const meanAmp = new Complex(meanRe / STATES, meanIm / STATES);
+    const meanMag = meanAmp.mag();
+    
+    const groups = new Map();
+
+    stateVector.forEach((amp, i) => {
+        if (amp.magSq() < 0.00001 && meanMag < 0.00001) return;
+        
+        // Bloch Sphere projection (standard mapping)
+        const prob = amp.magSq();
+        const theta = 2 * Math.acos(Math.sqrt(prob)); 
+        const phi = amp.phase();
+        
+        // Round for grouping (precision 0.01)
+        const key = `${theta.toFixed(2)}_${phi.toFixed(2)}`;
+        if (!groups.has(key)) groups.set(key, { theta, phi, states: [] });
+        groups.get(key).states.push(i);
+    });
+
+    let groupCounter = 1;
+    groups.forEach((data, key) => {
+        const x = 2 * Math.sin(data.theta) * Math.cos(data.phi);
+        const z = 2 * Math.sin(data.theta) * Math.sin(data.phi);
+        const y = 2 * Math.cos(data.theta);
+
+        // Color based on Phase (HSL: 0 to 360)
+        const hue = (data.phi / (2 * Math.PI) * 360) + 180;
+        const color = new THREE.Color();
+        color.setHSL(hue, 1.0, 0.5);
+
+        const dir = new THREE.Vector3(x, y, z);
+        const origin = new THREE.Vector3(0, 0, 0);
+        //const hex = data.states.length > 1 ? 0xff38d1 : 0x38bdf8;
+        const arrow = new THREE.ArrowHelper(dir.normalize(), origin, 2, color.getHex(), 0.2, 0.1);
+        arrow.renderOrder = 1;
+        
+        arrow.line.material.depthTest = false;
+        arrow.cone.material.depthTest = false;
+        
+        vsphere.scene.add(arrow);
+        vsphere.vectors.push(arrow);
+
+        // Legend logic
+        const labelText = data.states.length === 1 ? 
+            `|${data.states[0].toString(2).padStart(QUBITS, '0')}⟩` : 
+              `Group ${groupCounter++}`;
+
+        const label = createTextSprite(labelText, '#ffffff', scale=0.8);
+        label.position.copy(dir).multiplyScalar(2.25);
+        vsphere.labels.push(label);
+        vsphere.scene.add(label);
+        
+        const item = document.createElement('div');
+        item.className = "flex items-center gap-2 p-2 rounded bg-slate-900/50 border-l-2";
+        item.style.borderColor = `#${color.getHexString()}`;
+        item.innerHTML = `
+            <span class="text-[10px] font-mono text-white">${labelText}</span>
+            <span class="text-[8px] text-slate-500">${data.states.length} states</span>
+        `;
+        legend.appendChild(item);
+    });
+}
+
+
+
+
+
 function initPolytopeView() {
     const container = document.getElementById('polytope-container');
     if (!container || polytopeViews.length > 0) return;
@@ -1128,6 +1304,7 @@ function updateViews(lastMatrix, lastGateInfo) {
     updateMatrixDisplay(lastMatrix, lastGateInfo);
     updateVectorDisplay();
     updatePolytopeView();
+    if (activeTab === 'vsphere') updateVSphere();
     updateHintonView();
     updateEntanglementGraph();
     updateInterpretation(lastGateInfo);

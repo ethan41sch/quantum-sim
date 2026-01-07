@@ -40,6 +40,8 @@
                     <button onclick="switchTab('wavefront')" id="tab-wavefront" class="tab-btn px-2 py-1 transition">Wave Fronts</button>
                     <button onclick="switchTab('qsphere')" id="tab-qsphere"
                         class="tab-btn px-2 py-1 transition">Q-Sphere</button>
+                    <button onclick="switchTab('vsphere')" id="tab-vsphere"
+                        class="tab-btn px-2 py-1 transition">V-Sphere</button>
                     <button onclick="switchTab('hinton')" id="tab-hinton" class="tab-btn px-2 py-1 transition">Hinton &
                         Polytopes</button>
                     <button onclick="switchTab('entanglement')" id="tab-entanglement"
@@ -169,10 +171,26 @@
                     <div id="view-qsphere" class="view-panel hidden relative">
                         <label class="text-sky-400 font-bold block mb-2">
                           <input type="checkbox" id="qsphere-dynamic">
-                          Vectors Represent Probability
+                          Vector Length Represents Probability
                         </label>
                       <div id="three-qsphere-container" class="w-full h-[400px]"></div>
                     </div>
+
+                    <div id="view-vsphere" class="view-panel hidden">
+                      <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-12 lg:col-span-9 bg-slate-900 rounded-xl border border-slate-700 relative overflow-hidden h-[600px]">
+                          <div id="vsphere-container" class="w-full h-full"></div>
+                          <div class="absolute top-4 left-4 bg-slate-800/80 p-2 rounded text-[10px] text-sky-400 font-mono border border-sky-500/30">
+                            V-SPHERE: STATE VECTOR PROJECTIONS
+                          </div>
+        </div>
+                        <div class="col-span-12 lg:col-span-3 bg-slate-800/50 p-4 rounded-xl border border-slate-700 overflow-y-auto h-[600px]">
+                          <h3 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">Vector Groups</h3>
+                          <div id="vsphere-legend" class="space-y-2"></div>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <div id="view-hinton" class="view-panel hidden">
                         <div class="flex flex-col xl:flex-row gap-8 items-start justify-center">
                             <div class="flex-shrink-0">

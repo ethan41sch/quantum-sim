@@ -216,3 +216,17 @@ body {
         transform: translateY(0);
     }
 }
+
+#vsphere-legend div {
+    transition: transform 0.2s;
+    cursor: default;
+}
+
+#vsphere-legend div:hover {
+    background-color: rgba(56, 189, 248, 0.1);
+    transform: translateX(4px);
+}
+
+#vsphere-container canvas {
+    outline: none;
+}
