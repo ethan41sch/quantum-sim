@@ -1007,9 +1007,15 @@ function renderQSphere() {
             vector.visible = true;
             const hamming = i.toString(2).split('1').length - 1;
             const phi = (hamming / QUBITS) * Math.PI;
-            const theta = (i / STATES) * Math.PI * 2;
+            const theta = (i / STATES) * Math.PI * 2;            
 
-            const dynamicRadius = 0.5 + (prob * 3.5);
+            let dynamicRadius = 4.0;
+            const checkbox = document.getElementById('qsphere-dynamic');
+
+            if(checkbox.checked){
+                dynamicRadius = 0.5 + (prob * 3.5);
+            }
+                        
             const newPos = new THREE.Vector3(
                 dynamicRadius * Math.sin(phi) * Math.cos(theta),
                 dynamicRadius * Math.cos(phi),
