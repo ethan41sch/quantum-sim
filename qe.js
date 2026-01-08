@@ -22,6 +22,7 @@ let circuit = [];
 let currentStep = 0;
 let animationTime = 0;
 let activeTab = 'circuit';
+let stateVector = null;
 let stateHistory = [];
 let corkscrew = { scene: null, camera: null, renderer: null, controls: null, lines: [], labels: [], needles: [], compositeLine: null };
 let wavefront = { scene: null, camera: null, renderer: null, controls: null, mesh: null, geometry: null, container: null };
@@ -876,7 +877,7 @@ function createWavefrontLabels() {
     for (let i = 0; i < STATES; i++) {
         const coords = getEmitterCoords(i);
         const label = createTextSprite(`|${i.toString(2).padStart(5, '0')}>`,
-                                       color='#ffffff');
+                                       '#ffffff');
         
         label.position.set(coords.x, 0.5, -coords.y); // Static height above the plane (Z axis is height)
         label.scale.set(1.5, 0.75, 1);
@@ -969,7 +970,7 @@ function initQSphere() {
         qsphere.scene.add(node);
         qsphere.nodes.push(node);
 
-        const label = createTextSprite(`|${i.toString(2).padStart(QUBITS, '0')}⟩`, color='#ffffff');
+        const label = createTextSprite(`|${i.toString(2).padStart(QUBITS, '0')}⟩`, '#ffffff');
         label.scale.set(0.75, 0.5, 0.75);
         label.position.copy(node.position).multiplyScalar(1.075);
         qsphere.scene.add(label);
@@ -1069,6 +1070,14 @@ function createAxisLine(startVec, endVec, hexColor) {
 
 function initVSphere() {
     if (vsphere.renderer) return;
+
+    if (vsphere.scene){
+        vsphere.vectors.forEach(v => vsphere.scene.remove(v));
+        vsphere.vectors = [];
+        vsphere.labels.forEach(v => vsphere.scene.remove(v));
+        vsphere.labels = [];
+    }
+    
     const container = document.getElementById('vsphere-container');
     vsphere.scene = new THREE.Scene();
     vsphere.camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -1089,29 +1098,29 @@ function initVSphere() {
     const xAxis = createAxisLine(new THREE.Vector3(0, 0, 2), new THREE.Vector3(0, 0, -2), 0xca67db);
     vsphere.scene.add(xAxis);
 
-    const labelY = createTextSprite("X", "#a6bfb3");
+    const labelY = createTextSprite("0\u00B0", "#a6bfb3");
     labelY.position.set(2.4, 0, 0);
     vsphere.scene.add(labelY);
 
-    const labelY2 = createTextSprite("-X", "#a6bfb3");
+    const labelY2 = createTextSprite("180\u00B0", "#a6bfb3");
     labelY2.position.set(-2.4, 0, 0);
     vsphere.scene.add(labelY2);
 
 
-    const labelZ = createTextSprite("0", "#a6bfb3");
+    const labelZ = createTextSprite("100%", "#a6bfb3");
     labelZ.position.set(0, 2.4, 0);
     vsphere.scene.add(labelZ);
     
-    const labelZ2 = createTextSprite("1", "#a6bfb3");
+    const labelZ2 = createTextSprite("0%", "#a6bfb3");
     labelZ2.position.set(0, -2.4, 0);
     vsphere.scene.add(labelZ2);
 
 
-    const labelX = createTextSprite("-Y", "#a6bfb3");
+    const labelX = createTextSprite("270\u00B0", "#a6bfb3");
     labelX.position.set(0, 0, 2.4);
     vsphere.scene.add(labelX);
 
-    const labelX2 = createTextSprite("Y", "#a6bfb3");
+    const labelX2 = createTextSprite("90\u00B0", "#a6bfb3");
     labelX2.position.set(0, 0, -2.4);
     vsphere.scene.add(labelX2);
 
@@ -1125,6 +1134,20 @@ function initVSphere() {
     vsphere.scene.add(light);
     vsphere.scene.add(new THREE.AmbientLight(0x404040));
 
+    const meanMaterial = new THREE.LineBasicMaterial({
+        color: 0xebde34,
+        linewidth: 3
+    });
+    const meanEndPoint = new THREE.Vector3(0, 2, 0)
+    const meanPoints = [new THREE.Vector3(0, 0, 0), meanEndPoint];
+    const meanGeometry = new THREE.BufferGeometry().setFromPoints(meanPoints);
+    vsphere.meanAxis = new THREE.Line(meanGeometry, meanMaterial);
+    vsphere.scene.add(vsphere.meanAxis);
+
+    vsphere.meanLabel = createTextSprite("\u03BC", "#ebde34");
+    vsphere.meanLabel.position.copy(meanEndPoint).multiplyScalar(0.5);
+    vsphere.scene.add(vsphere.meanLabel);
+
     function animate() {
         if (activeTab === 'vsphere') {
             requestAnimationFrame(animate);
@@ -1134,7 +1157,7 @@ function initVSphere() {
     animate();
 }
 
-function updateVSphereX() {
+function updateVSphere() {
     if (!vsphere.scene) return;
     vsphere.vectors.forEach(v => vsphere.scene.remove(v));
     vsphere.vectors = [];
@@ -1142,43 +1165,69 @@ function updateVSphereX() {
     vsphere.labels = [];
     const legend = document.getElementById('vsphere-legend');
     legend.innerHTML = '';
-
-    let meanRe = 0;
-    let meanIm = 0;
-    stateVector.forEach(amp => {
-        meanRe += amp.re;
-        meanIm += amp.im;
-    });
-    const meanAmp = new Complex(meanRe / STATES, meanIm / STATES);
-    const meanMag = meanAmp.mag();
     
     const groups = new Map();
 
-    stateVector.forEach((amp, i) => {
-        if (amp.magSq() < 0.00001 && meanMag < 0.00001) return;
+    let meanRe = 0;
+    let meanIm = 0;
+    let counter = 0;
+    
+    // Calculate the average amplitude across all states
+    stateVector.forEach(c => {
+        if(c.magSq() < 0.001){ return; }
+        meanRe += c.re;
+        meanIm += c.im;
+        counter += 1;
+    });
 
-        // Bloch Sphere projection (standard mapping)
-        const prob = amp.magSq();
-        const theta = 2 * Math.acos(Math.sqrt(prob)); 
+    meanRe = meanRe / counter;
+    meanIm = meanIm / counter;
+
+    const c = new Complex(meanRe, meanIm);
+    const cp = 1 - c.magSq();
+    const ct = cp * Math.PI;
+    const cph = c.phase();
+
+    const cz1 = 2 * cp - 1;
+    const cs = Math.sqrt(1 - cz1 * cz1);
+    const cx = 2 * cs * Math.cos(cph);
+    const cz = 2 * cs * Math.sin(cph);
+    const cy = 2 * - cz1;
+    const meanPos = new THREE.Vector3(cx,cy,cz);
+    const meanEPos = new THREE.Vector3(0,0,0);
+    
+    vsphere.meanAxis.geometry.setFromPoints([meanPos, meanEPos]);
+    vsphere.meanLabel.position.copy(meanPos).multiplyScalar(0.5);
+
+    stateVector.forEach((amp, i) => {
+        if (amp.magSq() < 0.00001) return;
+
+        const prob = 1 - amp.magSq();
+        const theta = prob * Math.PI;
         const phi = amp.phase();
-        
+
+        const z1 = 2 * prob - 1;
+        const s = Math.sqrt(1 - z1*z1);
+        const x = 2 * s * Math.cos(phi);
+        const z = 2 * s * Math.sin(phi);
+        const y = 2 * -z1;
         // Round for grouping (precision 0.01)
-        const key = `${theta.toFixed(2)}_${phi.toFixed(2)}`;
-        if (!groups.has(key)) groups.set(key, { amp, theta, phi, states: [] });
+        const key = `${x.toFixed(2)}_${y.toFixed(2)}_${z.toFixed(2)}`;
+        if (!groups.has(key)) groups.set(key, { x,y,z, phi, states: [] });
         groups.get(key).states.push(i);
     });
 
     let groupCounter = 1;
     groups.forEach((data, key) => {
-        const diff = data.amp.re - meanAmp.re;
-        const azimuth = (i / STATES) * Math.PI * 2;
         
-        const x = 2 * Math.sin(data.theta) * Math.cos(data.phi);
-        const z = 2 * Math.sin(data.theta) * Math.sin(data.phi);
-        const y = 2 * Math.cos(data.theta);
+        const phi = data.phi;
+        const x = data.x;
+        const y = data.y;
+        const z = data.z;
+        
 
         // Color based on Phase (HSL: 0 to 360)
-        const hue = (data.phi / (2 * Math.PI) * 360) + 180;
+        const hue = (phi / (2 * Math.PI)) + 0.5;
         const color = new THREE.Color();
         color.setHSL(hue, 1.0, 0.5);
 
@@ -1214,66 +1263,6 @@ function updateVSphereX() {
         legend.appendChild(item);
     });
 }
-
-function updateVSphere() {
-    if (!vsphere.scene) return;
-    vsphere.vectors.forEach(v => vsphere.scene.remove(v));
-    vsphere.vectors = [];
-    vsphere.labels.forEach(v => vsphere.scene.remove(v));
-    vsphere.labels = [];
-    
-    // 1. Calculate the Mean Amplitude (Complex)
-    let meanRe = 0;
-    let meanIm = 0;
-    stateVector.forEach(amp => {
-        meanRe += amp.re;
-        meanIm += amp.im;
-    });
-    const meanAmp = new Complex(meanRe / STATES, meanIm / STATES);
-    const meanMag = meanAmp.mag();
-
-    const legend = document.getElementById('vsphere-legend');
-    legend.innerHTML = `<div class="text-[10px] text-yellow-500 mb-2 border-b border-yellow-500/20 pb-1">Mean Mag: ${meanMag.toFixed(4)}</div>`;
-
-    stateVector.forEach((amp, i) => {
-        if (amp.magSq() < 0.00001) return;
-
-        // 2. Position logic: 
-        // We treat the "Mean" as the vertical Z-axis.
-        // The distance from the mean determines the 'spread'.
-        const diff = amp.re - meanAmp.re; // Real part difference
-        
-        // Map the state index to a circle around the Z-axis (the Mean)
-        const azimuth = (i / STATES) * Math.PI * 2;
-        
-        // Y-coordinate is the amplitude relative to the mean
-        // If amp > mean, it points UP. If amp < mean, it points DOWN.
-        const y = (amp.re - meanAmp.re) * 1.5; // Scaled for visibility
-        const x = Math.cos(azimuth) * 1.5;
-        const z = Math.sin(azimuth) * 1.5;
-
-        const color = new THREE.Color();
-        color.setHSL((amp.phase() + Math.PI) / (2 * Math.PI), 1.0, 0.5);
-
-        // 3. Render the Vector Line
-        const start = new THREE.Vector3(0, 0, 0);
-        const end = new THREE.Vector3(x, y, z);
-        
-        const mat = new THREE.LineBasicMaterial({ color: color });
-        const geo = new THREE.BufferGeometry().setFromPoints([start, end]);
-        const line = new THREE.Line(geo, mat);
-        
-        vsphere.scene.add(line);
-        vsphere.vectors.push(line);
-
-        // 4. Add Label at the tip
-        const label = createTextSprite(`|${i.toString(2).padStart(QUBITS, '0')}⟩`, `#${color.getHexString()}`, scale=0.8);
-        label.position.copy(end.multiplyScalar(1.1));
-        vsphere.scene.add(label);
-        vsphere.labels.push(label);
-    });
-}
-
 
 
 function initPolytopeView() {
@@ -1645,6 +1634,10 @@ function animate() {
     if (activeTab === 'corkscrew') renderCorkscrew();
     if (activeTab === 'wavefront') renderWavefront();                    
     if (activeTab === 'qsphere') renderQSphere();
+    if (activeTab === 'vsphere' && vsphere.renderer) {
+        vsphere.controls.update()
+        vsphere.renderer.render(vsphere.scene, vsphere.camera);
+    }
     if (activeTab === 'hinton') {
         polytopeViews.forEach(view => {
             if (view.controls) {
