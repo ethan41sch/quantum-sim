@@ -1830,6 +1830,69 @@ function addBellState() {
     setInterpretation('Bell State', 'The Bell State creates the 4 maximally entangled quantum states of two qubits.');
 }
 
+
+function addQPE(phi = Math.PI / 4) {
+    // 1. Prepare counting qubits (0, 1, 2) in superposition
+    for (let i = 0; i < 3; i++) {
+        circuit.push({ type: 'H', target: i, controls: [], angles: [] });
+    }
+
+    // 2. Prepare the state register (Q3, Q4) - e.g., in state |1> if U is P(phi)
+    // This qubit represents the eigenvector of U
+    circuit.push({ type: 'X', target: 3, controls: [], angles: [] });
+
+    // 3. Controlled-U operations (U^(2^j))
+    // We apply U = PhaseGate(phi) controlled by counting qubits
+    for (let i = 0; i < 3; i++) {
+        const repetitions = Math.pow(2, i);
+        for (let j = 0; j < repetitions; j++) {
+            // In your app, a controlled phase shift is a 'CU' or 'CZ' variant
+            circuit.push({
+                type: 'CU',
+                target: 3, // Target the state register
+                controls: [i], // Controlled by counting qubit i
+                angles: [0, 0, phi] // Applying the phase shift
+            });
+        }
+    }
+
+    // 4. Apply Inverse QFT to the counting register
+    addIQFT_Internal(0, 1, 2); 
+
+    currentStep = circuit.length;
+    runSimulation();
+    setInterpretation('QPE', `Estimating phase φ = ${phi.toFixed(3)}.`);
+}
+
+// Internal version that just pushes gates to the circuit array
+function addIQFT_Internal(startQubit, endQubit) {
+    const numQubits = endQubit - startQubit + 1;
+    
+    // 1. Swap qubits for bit-reversal
+    for (let i = 0; i < Math.floor(numQubits / 2); i++) {
+        const target1 = startQubit + i;
+        const target2 = endQubit - i;
+        circuit.push({ type: 'SWAP', target: target1, controls: [target2], angles: [] });
+    }
+
+    // 2. Controlled-Phase and Hadamard gates
+    for (let i = endQubit; i >= startQubit; i--) {
+        for (let j = endQubit; j > i; j--) {
+            const distance = j - i;
+            const angle = -(2 * Math.PI) / Math.pow(2, distance + 1);
+
+            circuit.push({
+                type: 'CU',
+                target: i,
+                controls: [j],
+                angles: [0, 0, angle]
+            });
+        }
+        circuit.push({ type: 'H', target: i, controls: [], angles: [] });
+    }
+}
+
+
 function addQFT() {
     for (let i = 0; i < QUBITS; i++) {
         circuit.push({ type: 'H', target: i, controls: [], angles: [] });
