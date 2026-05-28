@@ -153,7 +153,22 @@
                 </div>
 
                 <div class="bg-slate-900 rounded-xl border border-slate-800 p-4 min-h-[450px] relative">
-                    <div id="view-circuit" class="view-panel grid grid-cols-4 sm:grid-cols-8 gap-4"></div>
+                    <div id="view-circuit" class="view-panel space-y-8">
+                        <div id="phase-disks-grid" class="grid grid-cols-4 sm:grid-cols-8 gap-4"></div>
+                        
+                        <div id="marginal-container" class="border-t border-slate-700 pt-6 mt-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-[10px] font-bold text-sky-400 uppercase tracking-widest flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                                    </svg>
+                                    Qubit Marginal Probabilities
+                                </h3>
+                                <span class="text-[9px] text-slate-500 italic">Probability of |1⟩ for each qubit</span>
+                            </div>
+                            <div id="marginal-disks" class="flex flex-wrap justify-center gap-6"></div>
+                        </div>
+                    </div>
                     <div id="view-corkscrew" class="view-panel hidden relative">
                         <div id="three-corkscrew-container" class="w-full h-[400px]"></div>
                     </div>

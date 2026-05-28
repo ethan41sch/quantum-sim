@@ -70,7 +70,7 @@ function switchTab(tabId) {
 function toggleInfoPanel() {
     const panel = document.getElementById('info-panel');
     const isHidden = panel.classList.contains('hidden');
-    
+
     if (isHidden) {
         // Update content before showing
         document.getElementById('info-panel-content').innerHTML = getInfoText(activeTab);
@@ -129,7 +129,7 @@ function getInfoText(view) {
 
 
 
-        
+
         'corkscrew': `
 <div>
   <h2>3D Corkscrew Wave Guide</h2>
@@ -168,7 +168,7 @@ function getInfoText(view) {
 </div>`,
 
 
-        
+
         'wavefront': `
 <div>
     <h2 style="margin-top: 0;">Wave Front Guide</h2>
@@ -210,7 +210,7 @@ function getInfoText(view) {
 </div>`,
 
 
-        
+
         'qsphere': `
 <div style="padding: 20px; font-family: sans-serif; line-height: 1.6; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
   <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.25rem;">Q-Sphere* Guide</h3>
@@ -360,13 +360,13 @@ function getInfoText(view) {
 
 // Update the info panel automatically if it's open when switching tabs
 const originalSwitchTab = switchTab;
-switchTab = function(tabId) {
+switchTab = function (tabId) {
     originalSwitchTab(tabId);
     const panel = document.getElementById('info-panel');
     if (!panel.classList.contains('hidden')) {
         document.getElementById('info-panel-content').innerHTML = getInfoText(tabId);
     }
-};      
+};
 
 function runSimulation() {
     stateVector = Array(STATES).fill(0).map(() => new Complex(0, 0));
@@ -626,7 +626,7 @@ function updateHistoryView() {
     }
 }
 
-function createTextSprite(text, color = '#94a3b8', scale=1.2) {
+function createTextSprite(text, color = '#94a3b8', scale = 1.2) {
     const formattedText = text.replace('|', '∣').replace('>', '⟩');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -642,7 +642,7 @@ function createTextSprite(text, color = '#94a3b8', scale=1.2) {
     const texture = new THREE.CanvasTexture(canvas);
     const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
     const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.scale.set(scale, scale/2, 1);
+    sprite.scale.set(scale, scale / 2, 1);
     return sprite;
 }
 
@@ -751,7 +751,7 @@ function renderCorkscrew() {
 function updateDecayMethod() {
     const selector = document.getElementById('decay-selector');
     const value = parseFloat(selector.value);
-    
+
     // Update the uniform in the shader material
     if (wavefront.mesh && wavefront.mesh.material.uniforms.uDecayType) {
         wavefront.mesh.material.uniforms.uDecayType.value = value;
@@ -855,7 +855,7 @@ function initWavefront() {
     });
 
 
-    
+
     const topLight = new THREE.DirectionalLight(0xffffff, 1.0);
     topLight.position.set(0, 50, 0);
     wavefront.scene.add(topLight);
@@ -870,29 +870,29 @@ function initWavefront() {
     const pointLight = new THREE.PointLight(0xffffff, 1, 100);
     pointLight.position.set(10, 20, 10);
     wavefront.scene.add(ambientLight, pointLight);
-}                        
+}
 
 function createWavefrontLabels() {
     wavefront.labels = [];
     for (let i = 0; i < STATES; i++) {
         const coords = getEmitterCoords(i);
         const label = createTextSprite(`|${i.toString(2).padStart(5, '0')}>`,
-                                       '#ffffff');
-        
+            '#ffffff');
+
         label.position.set(coords.x, 0.5, -coords.y); // Static height above the plane (Z axis is height)
         label.scale.set(1.5, 0.75, 1);
-        
+
         wavefront.scene.add(label);
         wavefront.labels.push(label);
     }
-}                                     
+}
 
 function renderWavefront() {
     if (!wavefront.renderer || activeTab !== 'wavefront' || !stateVector) return;
 
     // Update time for movement
     wavefront.mesh.material.uniforms.uTime.value = animationTime * 2.8;
-    
+
     // Transfer amplitudes and phases to the GPU
     for (let i = 0; i < STATES; i++) {
         wavefront.mesh.material.uniforms.uAmplitudes.value[i] = stateVector[i].mag();
@@ -902,7 +902,7 @@ function renderWavefront() {
     for (let i = 0; i < STATES; i++) {
         const mag = stateVector[i].mag();
         const label = wavefront.labels[i];
-        
+
         if (mag > 0.1) {
             label.visible = true;
             label.material.opacity = Math.min(1.0, mag * 2.0);
@@ -915,7 +915,7 @@ function renderWavefront() {
     }
 
     wavefront.renderer.render(wavefront.scene, wavefront.camera);
-}                                
+}
 
 function initQSphere() {
     const container = document.getElementById('three-qsphere-container');
@@ -977,14 +977,14 @@ function initQSphere() {
         qsphere.labels.push(label);
         const points = [new THREE.Vector3(0, 0, 0), node.position.clone()];
         const lineGeom = new THREE.BufferGeometry().setFromPoints(points);
-        const vectorLine = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ 
-            color: 0x38bdf8, 
-            transparent: true, 
-            opacity: 0.3 
+        const vectorLine = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.3
         }));
-        
+
         qsphere.scene.add(vectorLine);
-        qsphere.vectors.push(vectorLine);                
+        qsphere.vectors.push(vectorLine);
     }
 }
 
@@ -1003,22 +1003,22 @@ function renderQSphere() {
             node.visible = false;
             label.visible = false;
             vector.visible = false;
-            node.position.set(0,0,0);       
+            node.position.set(0, 0, 0);
         }
         else {
             label.visible = true;
             vector.visible = true;
             const hamming = i.toString(2).split('1').length - 1;
             const phi = (hamming / QUBITS) * Math.PI;
-            const theta = (i / STATES) * Math.PI * 2;            
+            const theta = (i / STATES) * Math.PI * 2;
 
             let dynamicRadius = 4.0;
             const checkbox = document.getElementById('qsphere-dynamic');
 
-            if(checkbox.checked){
+            if (checkbox.checked) {
                 dynamicRadius = 0.5 + (prob * 3.5);
             }
-                        
+
             const newPos = new THREE.Vector3(
                 dynamicRadius * Math.sin(phi) * Math.cos(theta),
                 dynamicRadius * Math.cos(phi),
@@ -1028,8 +1028,8 @@ function renderQSphere() {
             node.position.copy(newPos);
             node.visible = true;
 
-            const baseSize = 0.5 + (hamming / QUBITS) * 1.5; 
-            const importanceScale = baseSize * (0.8 + Math.sqrt(prob)); 
+            const baseSize = 0.5 + (hamming / QUBITS) * 1.5;
+            const importanceScale = baseSize * (0.8 + Math.sqrt(prob));
 
             node.scale.setScalar(importanceScale * 0.75);
             //node.scale.setScalar(0.5 + Math.sqrt(prob) * 1.5);
@@ -1057,7 +1057,7 @@ function renderQSphere() {
 
 function createAxisLine(startVec, endVec, hexColor) {
     const geometry = new THREE.BufferGeometry().setFromPoints([startVec, endVec]);
-    const material = new THREE.LineBasicMaterial({ 
+    const material = new THREE.LineBasicMaterial({
         color: new THREE.Color(hexColor),
         linewidth: 2,
         transparent: false,
@@ -1071,13 +1071,13 @@ function createAxisLine(startVec, endVec, hexColor) {
 function initVSphere() {
     if (vsphere.renderer) return;
 
-    if (vsphere.scene){
+    if (vsphere.scene) {
         vsphere.vectors.forEach(v => vsphere.scene.remove(v));
         vsphere.vectors = [];
         vsphere.labels.forEach(v => vsphere.scene.remove(v));
         vsphere.labels = [];
     }
-    
+
     const container = document.getElementById('vsphere-container');
     vsphere.scene = new THREE.Scene();
     vsphere.camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -1110,7 +1110,7 @@ function initVSphere() {
     const labelZ = createTextSprite("100%", "#a6bfb3");
     labelZ.position.set(0, 2.4, 0);
     vsphere.scene.add(labelZ);
-    
+
     const labelZ2 = createTextSprite("0%", "#a6bfb3");
     labelZ2.position.set(0, -2.4, 0);
     vsphere.scene.add(labelZ2);
@@ -1128,7 +1128,7 @@ function initVSphere() {
     const sphereGeom = new THREE.SphereGeometry(2, 32, 32);
     const sphereMat = new THREE.MeshPhongMaterial({ color: 0x1e293b, transparent: true, opacity: 0.1, wireframe: true });
     vsphere.scene.add(new THREE.Mesh(sphereGeom, sphereMat));
-    
+
     const light = new THREE.PointLight(0xffffff, 1, 100);
     light.position.set(10, 10, 10);
     vsphere.scene.add(light);
@@ -1165,16 +1165,16 @@ function updateVSphere() {
     vsphere.labels = [];
     const legend = document.getElementById('vsphere-legend');
     legend.innerHTML = '';
-    
+
     const groups = new Map();
 
     let meanRe = 0;
     let meanIm = 0;
     let counter = 0;
-    
+
     // Calculate the average amplitude across all states
     stateVector.forEach(c => {
-        if(c.magSq() < 0.001){ return; }
+        if (c.magSq() < 0.001) { return; }
         meanRe += c.re;
         meanIm += c.im;
         counter += 1;
@@ -1193,9 +1193,9 @@ function updateVSphere() {
     const cx = 2 * cs * Math.cos(cph);
     const cz = 2 * cs * Math.sin(cph);
     const cy = 2 * - cz1;
-    const meanPos = new THREE.Vector3(cx,cy,cz);
-    const meanEPos = new THREE.Vector3(0,0,0);
-    
+    const meanPos = new THREE.Vector3(cx, cy, cz);
+    const meanEPos = new THREE.Vector3(0, 0, 0);
+
     vsphere.meanAxis.geometry.setFromPoints([meanPos, meanEPos]);
     vsphere.meanLabel.position.copy(meanPos).multiplyScalar(0.5);
 
@@ -1207,24 +1207,24 @@ function updateVSphere() {
         const phi = amp.phase();
 
         const z1 = 2 * prob - 1;
-        const s = Math.sqrt(1 - z1*z1);
+        const s = Math.sqrt(1 - z1 * z1);
         const x = 2 * s * Math.cos(phi);
         const z = 2 * s * Math.sin(phi);
         const y = 2 * -z1;
         // Round for grouping (precision 0.01)
         const key = `${x.toFixed(2)}_${y.toFixed(2)}_${z.toFixed(2)}`;
-        if (!groups.has(key)) groups.set(key, { x,y,z, phi, states: [] });
+        if (!groups.has(key)) groups.set(key, { x, y, z, phi, states: [] });
         groups.get(key).states.push(i);
     });
 
     let groupCounter = 1;
     groups.forEach((data, key) => {
-        
+
         const phi = data.phi;
         const x = data.x;
         const y = data.y;
         const z = data.z;
-        
+
 
         // Color based on Phase (HSL: 0 to 360)
         const hue = (phi / (2 * Math.PI)) + 0.5;
@@ -1236,23 +1236,23 @@ function updateVSphere() {
         //const hex = data.states.length > 1 ? 0xff38d1 : 0x38bdf8;
         const arrow = new THREE.ArrowHelper(dir.normalize(), origin, 2, color.getHex(), 0.2, 0.1);
         arrow.renderOrder = 1;
-        
+
         arrow.line.material.depthTest = false;
         arrow.cone.material.depthTest = false;
-        
+
         vsphere.scene.add(arrow);
         vsphere.vectors.push(arrow);
 
         // Legend logic
-        const labelText = data.states.length === 1 ? 
-            `|${data.states[0].toString(2).padStart(QUBITS, '0')}⟩` : 
-              `Group ${groupCounter++}`;
+        const labelText = data.states.length === 1 ?
+            `|${data.states[0].toString(2).padStart(QUBITS, '0')}⟩` :
+            `Group ${groupCounter++}`;
 
-        const label = createTextSprite(labelText, '#ffffff', scale=0.8);
+        const label = createTextSprite(labelText, '#ffffff', scale = 0.8);
         label.position.copy(dir).multiplyScalar(2.25);
         vsphere.labels.push(label);
         vsphere.scene.add(label);
-        
+
         const item = document.createElement('div');
         item.className = "flex items-center gap-2 p-2 rounded bg-slate-900/50 border-l-2";
         item.style.borderColor = `#${color.getHexString()}`;
@@ -1361,7 +1361,7 @@ function updateViews(lastMatrix, lastGateInfo) {
     if (list) list.innerHTML = stateVector.map((amp, i) => amp.magSq() > 0.001 ? `<div class="p-1 text-sky-400 font-bold border-b border-slate-800">|${i.toString(2).padStart(QUBITS, '0')}⟩ ${(amp.magSq() * 100).toFixed(1)}%</div>` : '').join('');
 }
 
-function setInterpretation(label, content){
+function setInterpretation(label, content) {
     const div = document.getElementById('insight-content');
     const tag = document.getElementById('insight-gate-tag');
     tag.innerText = label;
@@ -1414,11 +1414,56 @@ function updateCircuitView() {
         const prob = amp.magSq();
         disk.querySelector('.phase-fill').style.width = disk.querySelector('.phase-fill').style.height = `${Math.sqrt(prob) * 100}%`;
         disk.querySelector('.phase-needle').style.transform = `rotate(${-amp.phase()}rad)`;
-        disk.querySelector('.phase-needle').style.background = `hsl(${(amp.phase() / (2 * Math.PI) * 360) + 180}, 100%, 50%)`;                     
-        disk.querySelector('.phase-fill').style.background = `hsl(${(amp.phase() / (2 * Math.PI) * 360) + 180}, 20%, 50%)`;                     
-        
+        disk.querySelector('.phase-needle').style.background = `hsl(${(amp.phase() / (2 * Math.PI) * 360) + 180}, 100%, 50%)`;
+        disk.querySelector('.phase-fill').style.background = `hsl(${(amp.phase() / (2 * Math.PI) * 360) + 180}, 20%, 50%)`;
+
     });
+    updateMarginalView();
     renderCircuitLines();
+}
+
+function updateMarginalView() {
+    for (let q = 0; q < QUBITS; q++) {
+        const disk = document.getElementById(`marginal-disk-${q}`);
+        if (!disk) continue;
+
+        let p1 = 0;
+        let rho01 = new Complex(0, 0);
+        const mask = 1 << ((QUBITS - 1) - q);
+
+        stateVector.forEach((amp, i) => {
+            const prob = amp.magSq();
+            if (i & mask) {
+                p1 += prob;
+            } else {
+                const i1 = i | mask;
+                // Coherence term for the needle: <0|rho|1>
+                rho01 = rho01.add(amp.mul(new Complex(stateVector[i1].re, -stateVector[i1].im)));
+            }
+        });
+
+        const prob = p1;
+        const fill = disk.querySelector('.phase-fill');
+        const needle = disk.querySelector('.phase-needle');
+        const label = disk.parentElement.querySelector('.prob-label');
+
+        fill.style.width = fill.style.height = `${Math.sqrt(prob) * 100}%`;
+
+        // For marginals, phase is only well-defined if the qubit is in a pure state.
+        // We use the phase of rho01 if it's large enough.
+        if (rho01.magSq() > 0.0001) {
+            const phase = -rho01.phase(); // Correcting the phase for the needle
+            needle.style.transform = `rotate(${-phase}rad)`;
+            needle.style.background = `hsl(${(phase / (2 * Math.PI) * 360) + 180}, 100%, 50%)`;
+            fill.style.background = `hsl(${(phase / (2 * Math.PI) * 360) + 180}, 20%, 50%)`;
+            needle.style.opacity = "1";
+        } else {
+            needle.style.opacity = "0";
+            fill.style.background = "rgba(56, 189, 248, 0.3)";
+        }
+
+        if (label) label.innerText = `${(prob * 100).toFixed(1)}%`;
+    }
 }
 
 function updateMatrixDisplay(matrix, info) {
@@ -1537,7 +1582,7 @@ function getGeometricMeasure(rdm) {
 function getPurityMetric(rdm) {
     // Purity of subsystem A (qubit 1)
     let rhoA = [[rdm[0][0].add(rdm[1][1]), rdm[0][2].add(rdm[1][3])],
-                [rdm[2][0].add(rdm[3][1]), rdm[2][2].add(rdm[3][3])]];
+    [rdm[2][0].add(rdm[3][1]), rdm[2][2].add(rdm[3][3])]];
 
     let purityA = rhoA[0][0].magSq() + rhoA[0][1].magSq() + rhoA[1][0].magSq() + rhoA[1][1].magSq();
     let pairPurity = 0;
@@ -1632,7 +1677,7 @@ function animate() {
     requestAnimationFrame(animate);
     animationTime += 0.04;
     if (activeTab === 'corkscrew') renderCorkscrew();
-    if (activeTab === 'wavefront') renderWavefront();                    
+    if (activeTab === 'wavefront') renderWavefront();
     if (activeTab === 'qsphere') renderQSphere();
     if (activeTab === 'vsphere' && vsphere.renderer) {
         vsphere.controls.update()
@@ -1654,12 +1699,39 @@ function animate() {
 
 function init() {
     document.documentElement.style.setProperty('--states', STATES);
-    const container = document.getElementById('view-circuit');
-    for (let i = 0; i < STATES; i++) {
-        const clone = document.getElementById('disk-template').content.cloneNode(true);
-        clone.querySelector('.phase-disk').id = `disk-${i}`;
-        clone.querySelector('.state-label').innerText = `|${i.toString(2).padStart(QUBITS, '0')}⟩`;
-        container.appendChild(clone);
+    const container = document.getElementById('phase-disks-grid');
+    if (container) {
+        container.innerHTML = '';
+        for (let i = 0; i < STATES; i++) {
+            const clone = document.getElementById('disk-template').content.cloneNode(true);
+            clone.querySelector('.phase-disk').id = `disk-${i}`;
+            clone.querySelector('.state-label').innerText = `|${i.toString(2).padStart(QUBITS, '0')}⟩`;
+            container.appendChild(clone);
+        }
+    }
+
+    const marginalContainer = document.getElementById('marginal-disks');
+    if (marginalContainer) {
+        marginalContainer.innerHTML = '';
+        for (let i = 0; i < QUBITS; i++) {
+            const clone = document.getElementById('disk-template').content.cloneNode(true);
+            const disk = clone.querySelector('.phase-disk');
+            disk.id = `marginal-disk-${i}`;
+            disk.classList.remove('w-12', 'h-12');
+            disk.classList.add('w-16', 'h-16'); // Make marginal disks slightly larger
+
+            clone.querySelector('.state-label').innerText = `Qubit ${i}`;
+            clone.querySelector('.state-label').classList.replace('text-[8px]', 'text-[10px]');
+            clone.querySelector('.state-label').classList.add('font-bold', 'text-sky-300', 'mt-1');
+
+            // Add a percentage label
+            const probLabel = document.createElement('div');
+            probLabel.className = "text-[9px] font-mono text-slate-400 mt-0.5 prob-label";
+            probLabel.innerText = "0.0%";
+            clone.querySelector('.flex-col').appendChild(probLabel);
+
+            marginalContainer.appendChild(clone);
+        }
     }
     const circuitRows = document.getElementById('circuit-rows');
     for (let i = 0; i < QUBITS; i++) {
@@ -1686,35 +1758,35 @@ function renderCircuitLines() {
             gEl.className = `relative w-7 h-7 flex items-center justify-center rounded cursor-pointer shrink-0 z-20 ${idx < currentStep ? '' : 'opacity-10'}`;
 
             let tooltiptext = `${gate.type} Gate`;
-            if (gate.type == 'H'){
+            if (gate.type == 'H') {
                 tooltiptext = '<p>Hadamard Gate<br>180&deg; (&pi;) rotation about the Hadamard axis (45&deg; between X and Z axis). The "superposition" gate.</p>';
-            } else if(gate.type == 'X'){
+            } else if (gate.type == 'X') {
                 tooltiptext = '<p>X Gate<br>180&deg; (&pi;) rotation about the X axis. Called the "not" gate, as it flips 0 to 1 and vice versa</p>';
-            } else if(gate.type == 'Y'){
+            } else if (gate.type == 'Y') {
                 tooltiptext = '<p>Y Gate<br>180&deg; (&pi;) rotation about the Y axis. Combination of X and Z gates.</p>';
-            } else if(gate.type == 'Z'){
+            } else if (gate.type == 'Z') {
                 tooltiptext = '<p>Z Gate<br>180&deg; (&pi;) rotation about the Z axis. This is a phase manipulation gate.</p>';
-            } else if(gate.type == 'S'){
+            } else if (gate.type == 'S') {
                 tooltiptext = '<p>S Gate<br>90&deg; (&pi;/2) rotation about the Z axis. This is a phase manipulation gate.</p>';
-            } else if(gate.type == 'T'){
+            } else if (gate.type == 'T') {
                 tooltiptext = '<p>T Gate<br>45&deg; (&pi;/4) rotation about the Z axis. This is a phase manipulation gate.</p>';
-            } else if (gate.type == 'CNOT'){
+            } else if (gate.type == 'CNOT') {
                 tooltiptext = `<p>Controlled X (CNOT) Gate<br>180&deg; (&pi;) rotation about the X axis if control qubit is 1.</p><ol><li>Control: q${gate.controls[0]}</li></ol>`;
-            } else if (gate.type == 'CU' || gate.type == 'U'){
+            } else if (gate.type == 'CU' || gate.type == 'U') {
                 let angletext = `<li>Theta: ${gate.angles[0]}</li><li>Phi: ${gate.angles[1]}</li><li>Lambda: ${gate.angles[2]}</li></ol>`;
-                if (gate.type == 'CU'){
+                if (gate.type == 'CU') {
                     tooltiptext = `<p>Controlled U Gate<br>Arbitrary rotation about the space if control qubit is 1.</p><ol><li>Control: q${gate.controls[0]}</li>${angletext}`;
-                } else  {
+                } else {
                     tooltiptext = `<p>Unitary Gate<br>Arbitrary rotation about the space.</p><ol>${angletext}`;
                 }
-            } else if(gate.type == 'CZ'){
+            } else if (gate.type == 'CZ') {
                 tooltiptext = `<p>Controlled Z Gate<br>180&deg; (&pi;) rotation about the Z axis if control qubit is 1.</p><ol><li>Control: q${gate.controls[0]}</li></ol>`;
-            } else if(gate.type == 'MCZ'){
-                tooltiptext = `<p>Controlled Z Gate<br>180&deg; (&pi;) rotation about the Z axis if all control qubits are 1.</p><ol><li>Target: q${gate.target}</li><li>Control: ${gate.controls.map(x => "q"+x).join(", ")}</li></ol>`;
-            } else if(gate.type == 'SWAP'){
+            } else if (gate.type == 'MCZ') {
+                tooltiptext = `<p>Controlled Z Gate<br>180&deg; (&pi;) rotation about the Z axis if all control qubits are 1.</p><ol><li>Target: q${gate.target}</li><li>Control: ${gate.controls.map(x => "q" + x).join(", ")}</li></ol>`;
+            } else if (gate.type == 'SWAP') {
                 tooltiptext = '<p>Swap Gate<br>Swaps the state of the two qubits.</p>';
             }
-            
+
             if (gate.target === q) {
                 let t = gate.type;
                 if (gate.type === 'SWAP') {
@@ -1748,7 +1820,7 @@ function renderCircuitLines() {
                 globalTooltip.style.left = `${rect.left + rect.width / 2}px`;
                 globalTooltip.style.top = `${rect.top + 30}px`;
                 globalTooltip.style.transform = "translateX(-50%)";
-                
+
                 globalTooltip.classList.remove('hidden');
             });
 
@@ -1756,9 +1828,9 @@ function renderCircuitLines() {
                 globalTooltip.classList.add('hidden');
             });
 
-            
 
-            
+
+
             row.appendChild(gEl);
         });
     }
@@ -1805,7 +1877,7 @@ function addGroverDiffusion() {
 
 function addSuperpositionState() {
     resetCircuit();
-    for (let i=0;i<QUBITS;i++){
+    for (let i = 0; i < QUBITS; i++) {
         circuit.push({
             type: 'H',
             target: i,
@@ -1857,7 +1929,7 @@ function addQPE(phi = Math.PI / 4) {
     }
 
     // 4. Apply Inverse QFT to the counting register
-    addIQFT_Internal(0, 1, 2); 
+    addIQFT_Internal(0, 1, 2);
 
     currentStep = circuit.length;
     runSimulation();
@@ -1867,7 +1939,7 @@ function addQPE(phi = Math.PI / 4) {
 // Internal version that just pushes gates to the circuit array
 function addIQFT_Internal(startQubit, endQubit) {
     const numQubits = endQubit - startQubit + 1;
-    
+
     // 1. Swap qubits for bit-reversal
     for (let i = 0; i < Math.floor(numQubits / 2); i++) {
         const target1 = startQubit + i;
